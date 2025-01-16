@@ -10,7 +10,13 @@ let package = Package(
         .library(name: "Zip", targets: ["Zip"])
     ],
     targets: [
-        .target(name: "Zip"),
+        .target(
+            name: "CZipZlib",
+            linkerSettings: [
+                .linkedLibrary("z")
+            ]
+        ),
+        .target(name: "Zip", dependencies: ["CZipZlib"]),
         .testTarget(
             name: "ZipTests",
             dependencies: ["Zip"],

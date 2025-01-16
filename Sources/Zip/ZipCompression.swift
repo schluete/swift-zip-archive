@@ -1,0 +1,56 @@
+import CZipZlib
+
+protocol ZipCompressor {
+    func inflate(from: ArraySlice<UInt8>, uncompressedSize: Int) throws -> [UInt8]
+}
+
+typealias ZipCompressionMethodsMap = [Zip.FileCompressionMethod: any ZipCompressor]
+
+struct DoNothingCompressor: ZipCompressor {
+    func inflate(from: ArraySlice<UInt8>, uncompressedSize: Int) throws -> [UInt8] {
+        .init(from)
+    }
+}
+class ZlibDeflateCompressor: ZipCompressor {
+    let windowBits: Int32
+
+    init(windowBits: Int32) {
+        self.windowBits = windowBits
+    }
+
+    func inflate(from: ArraySlice<UInt8>, uncompressedSize: Int) throws -> [UInt8] {
+        var stream = z_stream()
+        stream.zalloc = nil
+        stream.zfree = nil
+        stream.opaque = nil
+        let rt = CZipZlib_inflateInit2(&stream, -windowBits)
+        guard rt == Z_OK else { throw ZipFileReaderError.compressionError }
+
+        var from = from
+        return try .init(unsafeUninitializedCapacity: uncompressedSize) { toBuffer, count in
+            try from.withUnsafeMutableBytes { fromBuffer in
+                stream.avail_in = UInt32(fromBuffer.count)
+                stream.next_in = CZipZlib_voidPtr_to_BytefPtr(fromBuffer.baseAddress!)
+                stream.avail_out = UInt32(toBuffer.count)
+                stream.next_out = CZipZlib_voidPtr_to_BytefPtr(toBuffer.baseAddress!)
+
+                let rt = CZipZlib.inflate(&stream, Z_FINISH)
+                switch rt {
+                case Z_OK:
+                    throw ZipFileReaderError.compressionError
+                case Z_BUF_ERROR:
+                    throw ZipFileReaderError.compressionError
+                case Z_DATA_ERROR:
+                    throw ZipFileReaderError.compressionError
+                case Z_MEM_ERROR:
+                    throw ZipFileReaderError.compressionError
+                case Z_STREAM_END:
+                    break
+                default:
+                    throw ZipFileReaderError.compressionError
+                }
+            }
+            count = uncompressedSize
+        }
+    }
+}

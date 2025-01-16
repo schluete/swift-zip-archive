@@ -11,25 +11,25 @@ struct ZipFileStorageTests {
         (10, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
     ])
     func testRead(values: (read: Int, result: [UInt8])) throws {
-        var file = ZipFileMemoryStorage(buffer)
+        let file = ZipFileMemoryStorage(buffer)
         #expect(try .init(file.read(values.read)) == values.result)
     }
 
     @Test(arguments: [-1, 11])
     func testReadFails(read: Int) throws {
-        var file = ZipFileMemoryStorage(buffer)
+        let file = ZipFileMemoryStorage(buffer)
         #expect(throws: ZipFileStorageError.self) { try file.read(read) }
     }
 
     @Test(arguments: [0, 5, 10])
     func testSeek(offset: Int) throws {
-        var file = ZipFileMemoryStorage(buffer)
+        let file = ZipFileMemoryStorage(buffer)
         #expect(throws: Never.self) { try file.seek(offset) }
     }
 
     @Test(arguments: [-1, 11])
     func testSeekFails(offset: Int) throws {
-        var file = ZipFileMemoryStorage(buffer)
+        let file = ZipFileMemoryStorage(buffer)
         #expect(throws: ZipFileStorageError.self) { try file.seek(offset) }
     }
 
@@ -40,7 +40,7 @@ struct ZipFileStorageTests {
         (8, 10, [8, 9]),
     ])
     func testSeekAndRead(values: (seek: Int, readTo: Int, result: [UInt8])) throws {
-        var file = ZipFileMemoryStorage(buffer)
+        let file = ZipFileMemoryStorage(buffer)
         try file.seek(values.seek)
         #expect(try .init(file.read(values.readTo - values.seek)) == values.result)
     }
@@ -51,13 +51,13 @@ struct ZipFileStorageTests {
         (10, 1),
     ])
     func testSeekAndReadFail(values: (seek: Int, readTo: Int)) throws {
-        var file = ZipFileMemoryStorage(buffer)
+        let file = ZipFileMemoryStorage(buffer)
         try file.seek(values.seek)
         #expect(throws: ZipFileStorageError.self) { try file.read(values.readTo) }
     }
 
     @Test func testWrite() throws {
-        var file = ZipFileMemoryStorage<[UInt8]>()
+        let file = ZipFileMemoryStorage<[UInt8]>()
         file.seekEnd()
         #expect(file.write(bytes: [1, 2, 3]) == 3)
         try file.seek(0)
@@ -65,7 +65,7 @@ struct ZipFileStorageTests {
     }
 
     @Test func testAppendingWrite() throws {
-        var file = ZipFileMemoryStorage<[UInt8]>([1, 2, 3])
+        let file = ZipFileMemoryStorage<[UInt8]>([1, 2, 3])
         file.seekEnd()
         #expect(file.write(bytes: [4, 5, 6]) == 3)
         try file.seek(0)
@@ -73,7 +73,7 @@ struct ZipFileStorageTests {
     }
 
     @Test func testReplacingWrite() throws {
-        var file = ZipFileMemoryStorage<[UInt8]>([1, 2, 3, 4, 5, 6])
+        let file = ZipFileMemoryStorage<[UInt8]>([1, 2, 3, 4, 5, 6])
         try file.seek(2)
         #expect(file.write(bytes: [7, 8, 9]) == 3)
         try file.seek(0)
