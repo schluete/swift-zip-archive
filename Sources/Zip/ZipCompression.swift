@@ -37,7 +37,7 @@ class ZlibDeflateCompressor: ZipCompressor {
                 let rt = CZipZlib.inflate(&stream, Z_FINISH)
                 switch rt {
                 case Z_OK:
-                    throw ZipFileReaderError.compressionError
+                    break
                 case Z_BUF_ERROR:
                     throw ZipFileReaderError.compressionError
                 case Z_DATA_ERROR:
