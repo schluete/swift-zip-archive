@@ -123,6 +123,23 @@ public enum Zip {
         let extraFields: [ExtraField]
     }
 
+    struct Zip64EndOfCentralDirectory {
+        //let versionMadeBy: UInt16
+        //let versionNeeded: UInt16
+        let diskNumber: UInt32
+        let diskNumberCentralDirectoryStarts: UInt32
+        let diskEntries: UInt64
+        let totalEntries: UInt64
+        let centralDirectorySize: UInt64
+        let offsetOfCentralDirectory: UInt64
+    }
+
+    struct Zip64EndOfCentralLocator {
+        let diskNumberCentralDirectoryStarts: UInt32
+        let relativeOffsetEndOfCentralDirectory: Int64
+        let totalNumberOfDisks: UInt32
+    }
+
     struct EndOfCentralDirectory {
         let diskNumber: UInt16
         let diskNumberCentralDirectoryStarts: UInt16
@@ -132,4 +149,11 @@ public enum Zip {
         let offsetOfCentralDirectory: UInt32
         let comment: String
     }
+
+    static let localFileHeaderSignature = 0x0403_4b50
+    static let fileHeaderSignature = 0x0201_4b50
+    static let digitalSignatureSignature = 0x0505_4b50
+    static let zip64EndOfCentralDirectorySignature = 0x0606_4b50
+    static let zip64EndOfCentralLocatorSignature = 0x0706_4b50
+    static let endOfCentralDirectorySignature = 0x0605_4b50
 }
