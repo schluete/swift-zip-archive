@@ -25,7 +25,7 @@ class ZlibDeflateCompressor: ZipCompressor {
         stream.zfree = nil
         stream.opaque = nil
         let rt = CZipZlib_inflateInit2(&stream, -windowBits)
-        guard rt == Z_OK else { throw ZipFileReaderError.compressionError }
+        guard rt == Z_OK else { throw ZipArchiveReaderError.compressionError }
 
         var from = from
         return try .init(unsafeUninitializedCapacity: uncompressedSize) { toBuffer, count in
@@ -40,15 +40,15 @@ class ZlibDeflateCompressor: ZipCompressor {
                 case Z_OK:
                     break
                 case Z_BUF_ERROR:
-                    throw ZipFileReaderError.compressionError
+                    throw ZipArchiveReaderError.compressionError
                 case Z_DATA_ERROR:
-                    throw ZipFileReaderError.compressionError
+                    throw ZipArchiveReaderError.compressionError
                 case Z_MEM_ERROR:
-                    throw ZipFileReaderError.compressionError
+                    throw ZipArchiveReaderError.compressionError
                 case Z_STREAM_END:
                     break
                 default:
-                    throw ZipFileReaderError.compressionError
+                    throw ZipArchiveReaderError.compressionError
                 }
             }
             count = uncompressedSize

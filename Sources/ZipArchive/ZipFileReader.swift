@@ -1,7 +1,7 @@
 import CZipZlib
 
 /// Zip file reader type
-public class ZipFileReader<Storage: ZipReadableStorage> {
+public class ZipArchiveReader<Storage: ZipReadableStorage> {
     let file: Storage
     let endOfCentralDirectory: Zip.EndOfCentralDirectory
     let compressionMethods: ZipCompressionMethodsMap
@@ -32,9 +32,9 @@ public class ZipFileReader<Storage: ZipReadableStorage> {
     public func readFile(_ file: Zip.FileHeader) async throws -> [UInt8] {
         try await self.file.seek(numericCast(file.offsetOfLocalHeader))
         let localFileHeader = try await readLocalFileHeader()
-        guard localFileHeader.filename == file.filename else { throw ZipFileReaderError.invalidFileHeader }
+        guard localFileHeader.filename == file.filename else { throw ZipArchiveReaderError.invalidFileHeader }
         guard let compressor = self.compressionMethods[localFileHeader.compressionMethod] else {
-            throw ZipFileReaderError.unsupportedCompressionMethod
+            throw ZipArchiveReaderError.unsupportedCompressionMethod
         }
         // Read bytes and uncompress
         let fileBytes = try await self.file.readBytes(length: numericCast(localFileHeader.compressedSize))
@@ -48,7 +48,7 @@ public class ZipFileReader<Storage: ZipReadableStorage> {
         guard crc == localFileHeader.crc32 else {
             print(crc)
             print(localFileHeader.crc32)
-            throw ZipFileReaderError.crc32FileValidationFailed
+            throw ZipArchiveReaderError.crc32FileValidationFailed
         }
         return uncompressedBytes
     }
@@ -70,7 +70,7 @@ public class ZipFileReader<Storage: ZipReadableStorage> {
                 UInt16.self,
                 UInt16.self
             )
-        guard signature == Zip.localFileHeaderSignature else { throw ZipFileReaderError.invalidFileHeader }
+        guard signature == Zip.localFileHeaderSignature else { throw ZipArchiveReaderError.invalidFileHeader }
         let filename = try await file.readString(length: numericCast(fileNameLength))
         let extraFieldsBuffer = try await file.readBytes(length: numericCast(extraFieldsLength))
         let extraFields = try readExtraFields(extraFieldsBuffer)
@@ -87,7 +87,7 @@ public class ZipFileReader<Storage: ZipReadableStorage> {
                 compressedSize64 = try memoryBuffer.readInteger(as: UInt64.self)
             }
         }
-        guard let compressionMethod = Zip.FileCompressionMethod(rawValue: compression) else { throw ZipFileReaderError.invalidFileHeader }
+        guard let compressionMethod = Zip.FileCompressionMethod(rawValue: compression) else { throw ZipArchiveReaderError.invalidFileHeader }
         return .init(
             flags: .init(rawValue: flags),
             compressionMethod: compressionMethod,
@@ -124,7 +124,7 @@ public class ZipFileReader<Storage: ZipReadableStorage> {
                 UInt32.self,
                 UInt32.self
             )
-        guard signature == Zip.fileHeaderSignature else { throw ZipFileReaderError.invalidFileHeader }
+        guard signature == Zip.fileHeaderSignature else { throw ZipArchiveReaderError.invalidFileHeader }
 
         let filename = try await storage.readString(length: numericCast(fileNameLength))
         let extraFieldsBuffer = try await storage.readBytes(length: numericCast(extraFieldsLength))
@@ -152,7 +152,7 @@ public class ZipFileReader<Storage: ZipReadableStorage> {
                 diskStart32 = try memoryBuffer.readInteger(as: UInt32.self)
             }
         }
-        guard let compressionMethod = Zip.FileCompressionMethod(rawValue: compression) else { throw ZipFileReaderError.invalidFileHeader }
+        guard let compressionMethod = Zip.FileCompressionMethod(rawValue: compression) else { throw ZipArchiveReaderError.invalidFileHeader }
         return .init(
             flags: .init(rawValue: flags),
             compressionMethod: compressionMethod,
@@ -201,7 +201,7 @@ public class ZipFileReader<Storage: ZipReadableStorage> {
             UInt16.self
         )
 
-        guard signature == Zip.endOfCentralDirectorySignature else { throw ZipFileReaderError.internalError }
+        guard signature == Zip.endOfCentralDirectorySignature else { throw ZipArchiveReaderError.internalError }
 
         let comment = try await file.readString(length: numericCast(commentLength))
 
@@ -275,7 +275,7 @@ public class ZipFileReader<Storage: ZipReadableStorage> {
                 UInt64.self,
                 UInt64.self
             )
-        guard signature == Zip.zip64EndOfCentralDirectorySignature else { throw ZipFileReaderError.invalidDirectory }
+        guard signature == Zip.zip64EndOfCentralDirectorySignature else { throw ZipArchiveReaderError.invalidDirectory }
         return .init(
             diskNumber: diskNumber,
             diskNumberCentralDirectoryStarts: diskNumberCentralDirectoryStarts,
@@ -305,12 +305,12 @@ public class ZipFileReader<Storage: ZipReadableStorage> {
             }
         }
 
-        throw ZipFileReaderError.failedToFindCentralDirectory
+        throw ZipArchiveReaderError.failedToFindCentralDirectory
     }
 
 }
 
-public struct ZipFileReaderError: Error {
+public struct ZipArchiveReaderError: Error {
     internal enum Value {
         case invalidFileHeader
         case invalidDirectory

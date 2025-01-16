@@ -4,10 +4,10 @@
 import PackageDescription
 
 let package = Package(
-    name: "swift-zip",
+    name: "swift-zip-archive",
     platforms: [.macOS(.v12), .iOS(.v15), .tvOS(.v15)],
     products: [
-        .library(name: "Zip", targets: ["Zip"])
+        .library(name: "ZipArchive", targets: ["ZipArchive"])
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-system.git", from: "1.4.0")
@@ -20,15 +20,15 @@ let package = Package(
             ]
         ),
         .target(
-            name: "Zip",
+            name: "ZipArchive",
             dependencies: [
                 "CZipZlib",
                 .product(name: "SystemPackage", package: "swift-system"),
             ]
         ),
         .testTarget(
-            name: "ZipTests",
-            dependencies: ["Zip"],
+            name: "ZipArchiveTests",
+            dependencies: ["ZipArchive"],
             resources: [.process("resources")]
         ),
     ]
