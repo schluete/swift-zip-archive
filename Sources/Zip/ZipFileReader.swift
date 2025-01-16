@@ -19,8 +19,10 @@ public class ZipFileReader<Storage: ZipReadableStorage> {
     public func readDirectory() async throws -> [Zip.FileHeader] {
         var directory: [Zip.FileHeader] = []
         try await file.seek(numericCast(endOfCentralDirectory.offsetOfCentralDirectory))
+        let bytes = try await file.readBytes(length: numericCast(endOfCentralDirectory.centralDirectorySize))
+        let memoryStorage = ZipMemoryStorage(bytes)
         for _ in 0..<endOfCentralDirectory.diskEntries {
-            let fileHeader = try await self.readFileHeader()
+            let fileHeader = try await self.readFileHeader(from: memoryStorage)
             directory.append(fileHeader)
         }
         return directory
@@ -99,12 +101,12 @@ public class ZipFileReader<Storage: ZipReadableStorage> {
         )
     }
 
-    func readFileHeader() async throws -> Zip.FileHeader {
+    func readFileHeader(from storage: some ZipReadableStorage) async throws -> Zip.FileHeader {
         let (
             signature, _, _, flags, compression, modTime, modDate, crc32, compressedSize, uncompressedSize, fileNameLength,
             extraFieldsLength, commentLength, diskStart, internalAttribute, externalAttribute, offsetOfLocalHeader
         ) =
-            try await file.readIntegers(
+            try await storage.readIntegers(
                 UInt32.self,
                 UInt16.self,
                 UInt16.self,
@@ -125,9 +127,9 @@ public class ZipFileReader<Storage: ZipReadableStorage> {
             )
         guard signature == Zip.fileHeaderSignature else { throw ZipFileReaderError.invalidFileHeader }
 
-        let filename = try await file.readString(length: numericCast(fileNameLength))
-        let extraFieldsBuffer = try await file.readBytes(length: numericCast(extraFieldsLength))
-        let comment = try await file.readString(length: numericCast(commentLength))
+        let filename = try await storage.readString(length: numericCast(fileNameLength))
+        let extraFieldsBuffer = try await storage.readBytes(length: numericCast(extraFieldsLength))
+        let comment = try await storage.readString(length: numericCast(commentLength))
 
         let extraFields = try readExtraFields(extraFieldsBuffer)
 
