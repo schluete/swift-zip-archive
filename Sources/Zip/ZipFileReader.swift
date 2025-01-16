@@ -11,7 +11,7 @@ public class ZipFileReader<Storage: ZipReadableStorage> {
         self.endOfCentralDirectory = try await Self.readEndOfCentralDirectory(file: file)
         self.compressionMethods = [
             Zip.FileCompressionMethod.noCompression: DoNothingCompressor(),
-            Zip.FileCompressionMethod.deflated: ZlibDeflateCompressor(windowBits: 9),
+            Zip.FileCompressionMethod.deflated: ZlibDeflateCompressor(windowBits: 15),
         ]
     }
 
