@@ -141,12 +141,12 @@ public enum Zip {
     }
 
     struct EndOfCentralDirectory {
-        let diskNumber: UInt16
-        let diskNumberCentralDirectoryStarts: UInt16
-        let diskEntries: UInt16
-        let totalEntries: UInt16
-        let centralDirectorySize: UInt32
-        let offsetOfCentralDirectory: UInt32
+        let diskNumber: UInt32
+        let diskNumberCentralDirectoryStarts: UInt32
+        let diskEntries: UInt64
+        let totalEntries: UInt64
+        let centralDirectorySize: UInt64
+        let offsetOfCentralDirectory: UInt64
         let comment: String
     }
 
