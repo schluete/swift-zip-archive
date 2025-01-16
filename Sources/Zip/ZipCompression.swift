@@ -4,7 +4,7 @@ protocol ZipCompressor {
     func inflate(from: ArraySlice<UInt8>, uncompressedSize: Int) throws -> [UInt8]
 }
 
-typealias ZipCompressionMethodsMap = [Zip.FileCompressionMethod: any ZipCompressor]
+typealias ZipCompressionMethodsMap = [ZipFile.FileCompressionMethod: any ZipCompressor]
 
 struct DoNothingCompressor: ZipCompressor {
     func inflate(from: ArraySlice<UInt8>, uncompressedSize: Int) throws -> [UInt8] {

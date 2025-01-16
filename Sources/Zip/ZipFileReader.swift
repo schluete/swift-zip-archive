@@ -2,21 +2,21 @@ import Foundation
 
 public class ZipFileReader<Storage: ZipReadableFileStorage> {
     let file: Storage
-    let endOfCentralDirectory: Zip.EndOfCentralDirectory
+    let endOfCentralDirectory: ZipFile.EndOfCentralDirectory
     let compressionMethods: ZipCompressionMethodsMap
 
     public init(_ file: Storage) async throws {
         self.file = file
         self.endOfCentralDirectory = try await Self.readEndOfCentralDirectory(file: file)
         self.compressionMethods = [
-            Zip.FileCompressionMethod.noCompression: DoNothingCompressor(),
-            Zip.FileCompressionMethod.deflated: ZlibDeflateCompressor(windowBits: 9),
+            ZipFile.FileCompressionMethod.noCompression: DoNothingCompressor(),
+            ZipFile.FileCompressionMethod.deflated: ZlibDeflateCompressor(windowBits: 9),
         ]
 
     }
 
-    public func readDirectory() async throws -> [Zip.FileHeader] {
-        var directory: [Zip.FileHeader] = []
+    public func readDirectory() async throws -> [ZipFile.FileHeader] {
+        var directory: [ZipFile.FileHeader] = []
         try await file.seek(numericCast(endOfCentralDirectory.offsetOfCentralDirectory))
         for _ in 0..<endOfCentralDirectory.diskEntries {
             let fileHeader = try await self.readFileHeader()
@@ -25,7 +25,7 @@ public class ZipFileReader<Storage: ZipReadableFileStorage> {
         return directory
     }
 
-    public func readFile(_ file: Zip.FileHeader) async throws -> [UInt8] {
+    public func readFile(_ file: ZipFile.FileHeader) async throws -> [UInt8] {
         try await self.file.seek(numericCast(file.offsetOfLocalHeader))
         let localFileHeader = try await readLocalFileHeader()
         guard localFileHeader.filename == file.filename else { throw ZipFileReaderError.invalidFileHeader }
@@ -38,7 +38,7 @@ public class ZipFileReader<Storage: ZipReadableFileStorage> {
         return try compressor.inflate(from: .init(fileBytes), uncompressedSize: numericCast(localFileHeader.uncompressedSize))
     }
 
-    func readLocalFileHeader() async throws -> Zip.LocalFileHeader {
+    func readLocalFileHeader() async throws -> ZipFile.LocalFileHeader {
         let (
             signature, _, flags, compression, modTime, modDate, crc32, compressedSize, uncompressedSize, fileNameLength, extraFieldLength
         ) =
@@ -60,7 +60,7 @@ public class ZipFileReader<Storage: ZipReadableFileStorage> {
         let filename = try await file.readString(length: numericCast(fileNameLength))
         let extraField = try await file.readBytes(length: numericCast(extraFieldLength))
 
-        guard let compressionMethod = Zip.FileCompressionMethod(rawValue: compression) else { throw ZipFileReaderError.invalidFileHeader }
+        guard let compressionMethod = ZipFile.FileCompressionMethod(rawValue: compression) else { throw ZipFileReaderError.invalidFileHeader }
         return .init(
             flags: .init(rawValue: flags),
             compressionMethod: compressionMethod,
@@ -73,7 +73,7 @@ public class ZipFileReader<Storage: ZipReadableFileStorage> {
         )
     }
 
-    func readFileHeader() async throws -> Zip.FileHeader {
+    func readFileHeader() async throws -> ZipFile.FileHeader {
         let (
             signature, _, _, flags, compression, modTime, modDate, crc32, compressedSize, uncompressedSize, fileNameLength,
             extraFieldLength,
@@ -104,7 +104,7 @@ public class ZipFileReader<Storage: ZipReadableFileStorage> {
         let extraField = try await file.readBytes(length: numericCast(extraFieldLength))
         let comment = try await file.readString(length: numericCast(commentLength))
 
-        guard let compressionMethod = Zip.FileCompressionMethod(rawValue: compression) else { throw ZipFileReaderError.invalidFileHeader }
+        guard let compressionMethod = ZipFile.FileCompressionMethod(rawValue: compression) else { throw ZipFileReaderError.invalidFileHeader }
         return .init(
             flags: .init(rawValue: flags),
             compressionMethod: compressionMethod,
@@ -122,7 +122,7 @@ public class ZipFileReader<Storage: ZipReadableFileStorage> {
         )
     }
 
-    static func readEndOfCentralDirectory(file: some ZipReadableFileStorage) async throws -> Zip.EndOfCentralDirectory {
+    static func readEndOfCentralDirectory(file: some ZipReadableFileStorage) async throws -> ZipFile.EndOfCentralDirectory {
         try await searchForEndOfCentralDirectory(file: file)
         let (
             signature, diskNumber, diskNumberCentralDirectoryStarts, diskEntries, totalEntries, centralDirectorySize, offsetOfCentralDirectory,
