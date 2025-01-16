@@ -4,13 +4,14 @@ protocol ZipCompressor {
     func inflate(from: ArraySlice<UInt8>, uncompressedSize: Int) throws -> [UInt8]
 }
 
-typealias ZipCompressionMethodsMap = [ZipFile.FileCompressionMethod: any ZipCompressor]
+typealias ZipCompressionMethodsMap = [Zip.FileCompressionMethod: any ZipCompressor]
 
 struct DoNothingCompressor: ZipCompressor {
     func inflate(from: ArraySlice<UInt8>, uncompressedSize: Int) throws -> [UInt8] {
         .init(from)
     }
 }
+
 class ZlibDeflateCompressor: ZipCompressor {
     let windowBits: Int32
 

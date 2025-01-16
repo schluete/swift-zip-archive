@@ -9,6 +9,9 @@ let package = Package(
     products: [
         .library(name: "Zip", targets: ["Zip"])
     ],
+    dependencies: [
+        .package(url: "https://github.com/apple/swift-system.git", from: "1.4.0")
+    ],
     targets: [
         .target(
             name: "CZipZlib",
@@ -16,7 +19,13 @@ let package = Package(
                 .linkedLibrary("z")
             ]
         ),
-        .target(name: "Zip", dependencies: ["CZipZlib"]),
+        .target(
+            name: "Zip",
+            dependencies: [
+                "CZipZlib",
+                .product(name: "SystemPackage", package: "swift-system"),
+            ]
+        ),
         .testTarget(
             name: "ZipTests",
             dependencies: ["Zip"],

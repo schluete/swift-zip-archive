@@ -1,4 +1,4 @@
-public enum ZipFile {
+public enum Zip {
     public struct FileFlags: OptionSet {
         public let rawValue: UInt16
 
@@ -60,8 +60,8 @@ public enum ZipFile {
         let offsetOfLocalHeader: UInt32
 
         internal init(
-            flags: ZipFile.FileFlags,
-            compressionMethod: ZipFile.FileCompressionMethod,
+            flags: Zip.FileFlags,
+            compressionMethod: Zip.FileCompressionMethod,
             fileModificationTime: UInt16,
             fileModificationDate: UInt16,
             crc32: UInt32,

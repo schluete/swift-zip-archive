@@ -1,16 +1,17 @@
-public protocol ZipFileStorage {
+/// Protocol for storage
+public protocol ZipStorage {
     func seek(_ index: Int) async throws(ZipFileStorageError)
     func seekOffset(_ index: Int) async throws(ZipFileStorageError)
     func seekEnd() async throws(ZipFileStorageError)
-    var length: Int { get async }
+    var length: Int { get throws(ZipFileStorageError) }
 }
 
-public protocol ZipReadableFileStorage: ZipFileStorage {
+public protocol ZipReadableStorage: ZipStorage {
     associatedtype Buffer: RangeReplaceableCollection where Buffer.Element == UInt8, Buffer.Index == Int
     func read(_ count: Int) async throws(ZipFileStorageError) -> Buffer
 }
 
-extension ZipReadableFileStorage {
+extension ZipReadableStorage {
     @inlinable
     public func readInteger<T: FixedWidthInteger>(
         as: T.Type = T.self
@@ -54,7 +55,7 @@ extension ZipReadableFileStorage {
     }
 }
 
-public protocol ZipWriteableFileStorage: ZipFileStorage {
+public protocol ZipWriteableStorage: ZipStorage {
     func write<Bytes: Collection>(bytes: Bytes) async throws(ZipFileStorageError) -> Int where Bytes.Element == UInt8
 }
 
@@ -62,9 +63,15 @@ public struct ZipFileStorageError: Error {
     internal enum Value {
         case fileOffsetOutOfRange
         case readPastEndOfFile
+        case fileClosed
+        case fileDoesNotExist
+        case internalError
     }
     internal let value: Value
 
     public static var fileOffsetOutOfRange: Self { .init(value: .fileOffsetOutOfRange) }
     public static var readingPastEndOfFile: Self { .init(value: .readPastEndOfFile) }
+    public static var fileClosed: Self { .init(value: .fileClosed) }
+    public static var fileDoesNotExist: Self { .init(value: .fileDoesNotExist) }
+    public static var internalError: Self { .init(value: .internalError) }
 }

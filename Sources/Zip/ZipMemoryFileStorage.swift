@@ -1,4 +1,4 @@
-public final class ZipFileMemoryStorage<Bytes: RangeReplaceableCollection>: ZipReadableFileStorage, ZipWriteableFileStorage
+public final class ZipMemoryStorage<Bytes: RangeReplaceableCollection>: ZipReadableStorage, ZipWriteableStorage
 where Bytes.Element == UInt8, Bytes.Index == Int {
     @usableFromInline
     var buffer: MemoryBuffer<Bytes>
