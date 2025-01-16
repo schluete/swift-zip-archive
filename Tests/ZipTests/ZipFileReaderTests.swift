@@ -48,4 +48,15 @@ struct ZipFileReaderTests {
         let file = try await zipFileReader.readFile(zipFileDirectory[2])
         print(String(decoding: file, as: UTF8.self))
     }
+
+    @Test
+    func loadZip64File() async throws {
+        let filePath = Bundle.module.path(forResource: "hello64", ofType: "zip")!
+        let fileHandle = FileHandle(forReadingAtPath: filePath)
+        let data = try #require(try fileHandle?.readToEnd())
+        let zipFileReader = try await ZipFileReader(ZipMemoryStorage(data))
+        let zipFileDirectory = try await zipFileReader.readDirectory()
+        let file = try await zipFileReader.readFile(zipFileDirectory[0])
+        #expect(String(decoding: file, as: UTF8.self) == "Hello, world!\n")
+    }
 }

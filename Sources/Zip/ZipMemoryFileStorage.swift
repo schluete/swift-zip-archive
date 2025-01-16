@@ -28,26 +28,36 @@ where Bytes.Element == UInt8, Bytes.Index == Int {
     }
 
     @inlinable
-    public func seek(_ baseOffset: Int) throws(ZipFileStorageError) {
+    @discardableResult
+    public func seek(_ baseOffset: Int) throws(ZipFileStorageError) -> Int {
         do {
-            return try self.buffer.seek(baseOffset)
+            try self.buffer.seek(baseOffset)
+            return self.buffer.position
         } catch {
             throw .init(from: error)
         }
     }
 
     @inlinable
-    public func seekOffset(_ offset: Int) throws(ZipFileStorageError) {
+    @discardableResult
+    public func seekOffset(_ offset: Int) throws(ZipFileStorageError) -> Int {
         do {
-            return try self.buffer.seekOffset(offset)
+            try self.buffer.seekOffset(offset)
+            return self.buffer.position
         } catch {
             throw .init(from: error)
         }
     }
 
     @inlinable
-    public func seekEnd() {
-        self.buffer.seekEnd()
+    @discardableResult
+    public func seekEnd(_ offset: Int = 0) throws(ZipFileStorageError) -> Int {
+        do {
+            try self.buffer.seekEnd(offset)
+            return self.buffer.position
+        } catch {
+            throw .init(from: error)
+        }
     }
 
     @inlinable

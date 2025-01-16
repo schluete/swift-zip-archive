@@ -182,7 +182,7 @@ public class ZipFileReader<Storage: ZipReadableStorage> {
     }
 
     static func readEndOfCentralDirectory(file: some ZipReadableStorage) async throws -> Zip.EndOfCentralDirectory {
-        try await searchForEndOfCentralDirectory(file: file)
+        _ = try await searchForEndOfCentralDirectory(file: file)
         try await file.seekOffset(-20)
         let zip64EndOfCentralLocator = try await Self.readZip64EndOfCentralLocator(file: file)
 
@@ -202,6 +202,9 @@ public class ZipFileReader<Storage: ZipReadableStorage> {
 
         guard signature == Zip.endOfCentralDirectorySignature else { throw ZipFileReaderError.internalError }
 
+        let comment = try await file.readString(length: numericCast(commentLength))
+
+        // Zip64
         var diskNumber32: UInt32 = numericCast(diskNumber)
         var diskEntries64: UInt64 = numericCast(diskEntries)
         var totalEntries64: UInt64 = numericCast(totalEntries)
@@ -209,6 +212,28 @@ public class ZipFileReader<Storage: ZipReadableStorage> {
         var offsetOfCentralDirectory64: UInt64 = numericCast(offsetOfCentralDirectory)
         var diskNumberCentralDirectoryStarts32: UInt32 = numericCast(diskNumberCentralDirectoryStarts)
         if let zip64EndOfCentralLocator {
+            if diskNumberCentralDirectoryStarts == 0xffff {
+                diskNumberCentralDirectoryStarts32 = zip64EndOfCentralLocator.diskNumberCentralDirectoryStarts
+            }
+            // jump to zip64 central directory
+            //let offset = zip64EndOfCentralLocator.relativeOffsetEndOfCentralDirectory
+            try await file.seek(numericCast(zip64EndOfCentralLocator.relativeOffsetEndOfCentralDirectory))
+            let zip64EndOfCentralDirectory = try await Self.readZip64EndOfCentralDirectory(file: file)
+            if diskNumber == 0xffff {
+                diskNumber32 = zip64EndOfCentralDirectory.diskNumber
+            }
+            if diskEntries == 0xffff {
+                diskEntries64 = zip64EndOfCentralDirectory.diskEntries
+            }
+            if totalEntries == 0xffff {
+                totalEntries64 = zip64EndOfCentralDirectory.totalEntries
+            }
+            if centralDirectorySize == 0xffff_ffff {
+                centralDirectorySize64 = zip64EndOfCentralDirectory.centralDirectorySize
+            }
+            if offsetOfCentralDirectory == 0xffff_ffff {
+                offsetOfCentralDirectory64 = zip64EndOfCentralDirectory.offsetOfCentralDirectory
+            }
             // do stuff
         }
         return .init(
@@ -218,7 +243,7 @@ public class ZipFileReader<Storage: ZipReadableStorage> {
             totalEntries: totalEntries64,
             centralDirectorySize: centralDirectorySize64,
             offsetOfCentralDirectory: offsetOfCentralDirectory64,
-            comment: try await file.readString(length: numericCast(commentLength))
+            comment: comment
         )
     }
 
@@ -238,10 +263,29 @@ public class ZipFileReader<Storage: ZipReadableStorage> {
     }
 
     static func readZip64EndOfCentralDirectory(file: some ZipReadableStorage) async throws -> Zip.Zip64EndOfCentralDirectory {
-        preconditionFailure()
+        let (signature, _, diskNumber, diskNumberCentralDirectoryStarts, diskEntries, totalEntries, centralDirectorySize, offsetOfCentralDirectory) =
+            try await file.readIntegers(
+                UInt32.self,
+                UInt32.self,
+                UInt32.self,
+                UInt32.self,
+                UInt64.self,
+                UInt64.self,
+                UInt64.self,
+                UInt64.self
+            )
+        guard signature == Zip.zip64EndOfCentralDirectorySignature else { throw ZipFileReaderError.invalidDirectory }
+        return .init(
+            diskNumber: diskNumber,
+            diskNumberCentralDirectoryStarts: diskNumberCentralDirectoryStarts,
+            diskEntries: diskEntries,
+            totalEntries: totalEntries,
+            centralDirectorySize: centralDirectorySize,
+            offsetOfCentralDirectory: offsetOfCentralDirectory
+        )
     }
 
-    static func searchForEndOfCentralDirectory(file: some ZipReadableStorage) async throws {
+    static func searchForEndOfCentralDirectory(file: some ZipReadableStorage) async throws -> Int {
         let fileChunkLength = 1024
         let fileSize = try file.length
 
@@ -254,8 +298,8 @@ public class ZipFileReader<Storage: ZipReadableStorage> {
             let bytes = try await file.read(readSize)
             for index in (bytes.startIndex..<bytes.index(bytes.endIndex, offsetBy: -3)).reversed() {
                 if bytes[index] == 0x50, bytes[index + 1] == 0x4b, bytes[index + 2] == 0x5, bytes[index + 3] == 0x6 {
-                    try await file.seekOffset(index - bytes.startIndex - readSize)
-                    return
+                    let offset = try await file.seekOffset(index - bytes.startIndex - readSize)
+                    return numericCast(offset)
                 }
             }
         }
@@ -268,6 +312,7 @@ public class ZipFileReader<Storage: ZipReadableStorage> {
 public struct ZipFileReaderError: Error {
     internal enum Value {
         case invalidFileHeader
+        case invalidDirectory
         case failedToFindCentralDirectory
         case internalError
         case compressionError
@@ -278,6 +323,7 @@ public struct ZipFileReaderError: Error {
     internal let value: Value
 
     public static var invalidFileHeader: Self { .init(value: .invalidFileHeader) }
+    public static var invalidDirectory: Self { .init(value: .invalidDirectory) }
     public static var failedToFindCentralDirectory: Self { .init(value: .failedToFindCentralDirectory) }
     public static var internalError: Self { .init(value: .internalError) }
     public static var compressionError: Self { .init(value: .compressionError) }

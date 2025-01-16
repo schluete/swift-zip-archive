@@ -52,13 +52,15 @@ struct MemoryBuffer<Bytes: RangeReplaceableCollection> where Bytes.Element == UI
     @usableFromInline
     mutating func seekOffset(_ offset: Int) throws(MemoryBufferError) {
         let baseOffset = self.buffer.index(self.position, offsetBy: offset)
-        guard (self.buffer.startIndex..<self.buffer.endIndex).contains(baseOffset) else { throw .offsetOutOfRange }
+        guard (self.buffer.startIndex...self.buffer.endIndex).contains(baseOffset) else { throw .offsetOutOfRange }
         self.position = baseOffset
     }
 
     @usableFromInline
-    mutating func seekEnd() {
-        self.position = buffer.endIndex
+    mutating func seekEnd(_ offset: Int = 0) throws(MemoryBufferError) {
+        let baseOffset = self.buffer.index(self.buffer.endIndex, offsetBy: offset)
+        guard (self.buffer.startIndex...self.buffer.endIndex).contains(baseOffset) else { throw .offsetOutOfRange }
+        self.position = baseOffset
     }
 
     @usableFromInline

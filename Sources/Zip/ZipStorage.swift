@@ -1,8 +1,8 @@
 /// Protocol for storage
 public protocol ZipStorage {
-    func seek(_ index: Int) async throws(ZipFileStorageError)
-    func seekOffset(_ index: Int) async throws(ZipFileStorageError)
-    func seekEnd() async throws(ZipFileStorageError)
+    @discardableResult func seek(_ index: Int) async throws(ZipFileStorageError) -> Int
+    @discardableResult func seekOffset(_ index: Int) async throws(ZipFileStorageError) -> Int
+    @discardableResult func seekEnd(_ offset: Int) async throws(ZipFileStorageError) -> Int
     var length: Int { get throws(ZipFileStorageError) }
 }
 

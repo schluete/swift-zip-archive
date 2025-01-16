@@ -60,7 +60,7 @@ struct ZipMemoryStorageTests {
 
     @Test func testWrite() throws {
         let file = ZipMemoryStorage<[UInt8]>()
-        file.seekEnd()
+        try file.seekEnd()
         #expect(file.write(bytes: [1, 2, 3]) == 3)
         try file.seek(0)
         #expect(try file.read(3) == [1, 2, 3])
@@ -68,7 +68,7 @@ struct ZipMemoryStorageTests {
 
     @Test func testAppendingWrite() throws {
         let file = ZipMemoryStorage<[UInt8]>([1, 2, 3])
-        file.seekEnd()
+        try file.seekEnd()
         #expect(file.write(bytes: [4, 5, 6]) == 3)
         try file.seek(0)
         #expect(try file.read(6) == [1, 2, 3, 4, 5, 6])
