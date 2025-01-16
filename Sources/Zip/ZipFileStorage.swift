@@ -11,7 +11,6 @@ public class ZipFileStorage: ZipReadableStorage {
         )
         self.length = try numericCast(self.fileDescriptor.seek(offset: 0, from: .end))
         try self.fileDescriptor.seek(offset: 0, from: .start)
-        print("Opening \(filename), size: \(self.length)")
     }
 
     deinit {

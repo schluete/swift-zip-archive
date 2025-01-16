@@ -1,14 +1,14 @@
 import CZipZlib
 
 protocol ZipCompressor {
-    func inflate(from: ArraySlice<UInt8>, uncompressedSize: Int) throws -> [UInt8]
+    func inflate(from: [UInt8], uncompressedSize: Int) throws -> [UInt8]
 }
 
 typealias ZipCompressionMethodsMap = [Zip.FileCompressionMethod: any ZipCompressor]
 
 struct DoNothingCompressor: ZipCompressor {
-    func inflate(from: ArraySlice<UInt8>, uncompressedSize: Int) throws -> [UInt8] {
-        .init(from)
+    func inflate(from: [UInt8], uncompressedSize: Int) throws -> [UInt8] {
+        from
     }
 }
 
@@ -19,7 +19,7 @@ class ZlibDeflateCompressor: ZipCompressor {
         self.windowBits = windowBits
     }
 
-    func inflate(from: ArraySlice<UInt8>, uncompressedSize: Int) throws -> [UInt8] {
+    func inflate(from: [UInt8], uncompressedSize: Int) throws -> [UInt8] {
         var stream = z_stream()
         stream.zalloc = nil
         stream.zfree = nil

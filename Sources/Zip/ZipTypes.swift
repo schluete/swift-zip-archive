@@ -51,6 +51,7 @@ public enum Zip {
         public let filename: String
         public let comment: String
         public let externalAttributes: UInt32
+        let extraFields: [ExtraField]
         let _fileModificationTime: UInt16
         let _fileModificationDate: UInt16
         let crc32: UInt32
@@ -68,6 +69,7 @@ public enum Zip {
             compressedSize: Int64,
             uncompressedSize: Int64,
             filename: String,
+            extraFields: [ExtraField],
             comment: String,
             diskStart: UInt16,
             internalAttribute: UInt16,
@@ -82,12 +84,18 @@ public enum Zip {
             self.compressedSize = compressedSize
             self.uncompressedSize = uncompressedSize
             self.filename = filename
+            self.extraFields = extraFields
             self.comment = comment
             self.diskStart = diskStart
             self.internalAttribute = internalAttribute
             self.externalAttributes = externalAttributes
             self.offsetOfLocalHeader = offsetOfLocalHeader
         }
+    }
+
+    public struct ExtraField {
+        let header: UInt16
+        let data: ArraySlice<UInt8>
     }
 
     struct LocalFileHeader {
@@ -99,6 +107,7 @@ public enum Zip {
         let compressedSize: Int64
         let uncompressedSize: Int64
         let filename: String
+        let extraFields: [ExtraField]
     }
 
     struct EndOfCentralDirectory {

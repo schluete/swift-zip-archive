@@ -41,11 +41,11 @@ extension ZipReadableStorage {
         func memorySize<Value>(_ value: Value.Type) -> Int {
             MemoryLayout<Value>.size
         }
-        var count = 0
+        var size = 0
         for t in repeat each type {
-            count += memorySize(t)
+            size += memorySize(t)
         }
-        let bytes = try await read(count)
+        let bytes = try await read(size)
         var buffer = MemoryBuffer(bytes)
         do {
             return try buffer.readIntegers(repeat (each type))
