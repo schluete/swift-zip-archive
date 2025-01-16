@@ -1,3 +1,5 @@
+/// Zip file types
+/// Details on these can be found in the PKZIP AppNotes https://support.pkware.com/pkzip/application-note-archives
 public enum Zip {
     public struct FileFlags: OptionSet {
         public let rawValue: UInt16
@@ -47,7 +49,7 @@ public enum Zip {
     public struct FileHeader {
         public let flags: FileFlags
         public let compressionMethod: FileCompressionMethod
-        public let uncompressedSize: Int64
+        public let uncompressedSize: UInt64
         public let filename: String
         public let comment: String
         public let externalAttributes: UInt32
@@ -55,10 +57,10 @@ public enum Zip {
         let _fileModificationTime: UInt16
         let _fileModificationDate: UInt16
         let crc32: UInt32
-        let compressedSize: Int64
-        let diskStart: UInt16
+        let compressedSize: UInt64
+        let diskStart: UInt32
         let internalAttribute: UInt16
-        let offsetOfLocalHeader: UInt32
+        let offsetOfLocalHeader: UInt64
 
         internal init(
             flags: Zip.FileFlags,
@@ -66,15 +68,15 @@ public enum Zip {
             fileModificationTime: UInt16,
             fileModificationDate: UInt16,
             crc32: UInt32,
-            compressedSize: Int64,
-            uncompressedSize: Int64,
+            compressedSize: UInt64,
+            uncompressedSize: UInt64,
             filename: String,
             extraFields: [ExtraField],
             comment: String,
-            diskStart: UInt16,
+            diskStart: UInt32,
             internalAttribute: UInt16,
             externalAttributes: UInt32,
-            offsetOfLocalHeader: UInt32
+            offsetOfLocalHeader: UInt64
         ) {
             self.flags = flags
             self.compressionMethod = compressionMethod
@@ -98,14 +100,25 @@ public enum Zip {
         let data: ArraySlice<UInt8>
     }
 
+    enum ExtraFieldHeader: UInt16 {
+        case zip64 = 1
+    }
+
+    struct Zip64ExtendedInformationExtraField {
+        let uncompressedSize: UInt64
+        let compressedSize: UInt64
+        let offsetOfLocalHeader: UInt64
+        let diskStart: UInt32
+    }
+
     struct LocalFileHeader {
         let flags: FileFlags
         let compressionMethod: FileCompressionMethod
         let fileModificationTime: UInt16
         let fileModificationDate: UInt16
         let crc32: UInt32
-        let compressedSize: Int64
-        let uncompressedSize: Int64
+        let compressedSize: UInt64
+        let uncompressedSize: UInt64
         let filename: String
         let extraFields: [ExtraField]
     }
