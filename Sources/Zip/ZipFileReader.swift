@@ -103,13 +103,12 @@ public class ZipFileReader<Storage: ZipReadableStorage> {
 
     func readFileHeader(from storage: some ZipReadableStorage) async throws -> Zip.FileHeader {
         let (
-            signature, _, _, flags, compression, modTime, modDate, crc32, compressedSize, uncompressedSize, fileNameLength,
+            signature, _, flags, compression, modTime, modDate, crc32, compressedSize, uncompressedSize, fileNameLength,
             extraFieldsLength, commentLength, diskStart, internalAttribute, externalAttribute, offsetOfLocalHeader
         ) =
             try await storage.readIntegers(
                 UInt32.self,
-                UInt16.self,
-                UInt16.self,
+                UInt32.self,
                 UInt16.self,
                 UInt16.self,
                 UInt16.self,
