@@ -3,7 +3,6 @@ public protocol ZipStorage {
     @discardableResult func seek(_ index: Int) throws(ZipFileStorageError) -> Int
     @discardableResult func seekOffset(_ index: Int) throws(ZipFileStorageError) -> Int
     @discardableResult func seekEnd(_ offset: Int) throws(ZipFileStorageError) -> Int
-    var length: Int { get throws(ZipFileStorageError) }
 }
 
 public protocol ZipReadableStorage: ZipStorage {

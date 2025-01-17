@@ -288,11 +288,11 @@ public class ZipArchiveReader<Storage: ZipReadableStorage> {
 
     static func searchForEndOfCentralDirectory(file: some ZipReadableStorage) throws -> Int {
         let fileChunkLength = 1024
-        let fileSize = try file.length
+        let fileSize = try file.seekEnd(0)
 
         var filePosition = fileSize - 18
 
-        while filePosition > 0 {
+        while filePosition > 0, filePosition + 0xffff > fileSize {
             let readSize = min(filePosition, fileChunkLength)
             filePosition -= readSize
             try file.seek(filePosition)

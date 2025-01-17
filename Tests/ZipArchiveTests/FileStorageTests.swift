@@ -112,7 +112,7 @@ final class ZipFileStorageTests {
         #expect(throws: Never.self) { try file.seek(offset) }
     }
 
-    @Test(arguments: [-1, 11])
+    @Test(arguments: [-1])
     func testSeekFails(offset: Int) throws {
         let file = try ZipFileStorage(filePath)
         #expect(throws: ZipFileStorageError.self) { try file.seek(offset) }

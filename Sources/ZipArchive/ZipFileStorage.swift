@@ -3,7 +3,6 @@ import SystemPackage
 public class ZipFileStorage: ZipReadableStorage {
     @usableFromInline
     let fileDescriptor: FileDescriptor
-    public let length: Int
 
     @inlinable
     public init(_ filename: String) throws {
@@ -11,8 +10,6 @@ public class ZipFileStorage: ZipReadableStorage {
             .init(filename),
             .readOnly
         )
-        self.length = try numericCast(self.fileDescriptor.seek(offset: 0, from: .end))
-        try self.fileDescriptor.seek(offset: 0, from: .start)
     }
 
     deinit {
@@ -38,7 +35,6 @@ public class ZipFileStorage: ZipReadableStorage {
     @inlinable
     @discardableResult
     public func seek(_ index: Int) throws(ZipFileStorageError) -> Int {
-        guard index <= length else { throw .fileOffsetOutOfRange }
         do {
             let offset = try self.fileDescriptor.seek(offset: numericCast(index), from: .start)
             return numericCast(offset)
