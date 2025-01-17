@@ -5,6 +5,7 @@ public class ZipFileStorage: ZipReadableStorage {
     let fileDescriptor: FileDescriptor
     public let length: Int
 
+    @inlinable
     public init(_ filename: String) throws {
         self.fileDescriptor = try FileDescriptor.open(
             .init(filename),
