@@ -64,7 +64,7 @@ public struct ZipFileStorage: ZipReadableStorage {
 }
 
 extension ZipArchiveReader where Storage == ZipFileStorage {
-    static func withFile<Value>(_ filename: String, process: (ZipArchiveReader) throws -> Value) throws -> Value {
+    public static func withFile<Value>(_ filename: String, process: (ZipArchiveReader) throws -> Value) throws -> Value {
         let fileDescriptor = try FileDescriptor.open(
             .init(filename),
             .readOnly
