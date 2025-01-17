@@ -28,7 +28,7 @@ struct MemoryBuffer<Bytes: RangeReplaceableCollection> where Bytes.Element == UI
     }
 
     @usableFromInline
-    mutating func write<WriteBytes: Collection>(bytes: WriteBytes) -> Int where WriteBytes.Element == UInt8 {
+    mutating func write<WriteBytes: Collection>(bytes: WriteBytes) where WriteBytes.Element == UInt8 {
         if self.position == self.buffer.endIndex {
             self.buffer.append(contentsOf: bytes)
             self.position = self.buffer.endIndex
@@ -40,7 +40,6 @@ struct MemoryBuffer<Bytes: RangeReplaceableCollection> where Bytes.Element == UI
             self.buffer.replaceSubrange(self.position..., with: bytes)
             self.position = self.buffer.endIndex
         }
-        return bytes.count
     }
 
     @usableFromInline

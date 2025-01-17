@@ -55,8 +55,35 @@ extension ZipReadableStorage {
 }
 
 public protocol ZipWriteableStorage: ZipReadableStorage {
-    func write<Bytes: Collection>(bytes: Bytes) throws(ZipFileStorageError) -> Int where Bytes.Element == UInt8
+    func write<Bytes: Collection>(bytes: Bytes) throws(ZipFileStorageError) where Bytes.Element == UInt8
     func truncate(_ size: Int64) throws
+}
+
+extension ZipWriteableStorage {
+    @inlinable
+    public func writeString(_ string: String) throws(ZipFileStorageError) {
+        try self.write(bytes: string.utf8)
+    }
+
+    @inlinable
+    public func writeInteger<T: FixedWidthInteger>(
+        _ value: T
+    ) throws(ZipFileStorageError) {
+        do {
+            try withUnsafeBytes(of: value) { valuePtr in
+                try write(bytes: valuePtr)
+            }
+        } catch let error as ZipFileStorageError {
+            throw error
+        } catch {
+            throw .internalError
+        }
+    }
+
+    @inlinable
+    public func writeIntegers<each T: FixedWidthInteger>(_ value: repeat each T) throws(ZipFileStorageError) {
+        try (repeat self.writeInteger(each value))
+    }
 }
 
 public struct ZipFileStorageError: Error {

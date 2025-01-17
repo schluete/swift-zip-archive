@@ -23,7 +23,7 @@ where Bytes.Element == UInt8, Bytes.Index == Int {
     }
 
     @inlinable
-    public func write<WriteBytes: Collection>(bytes: WriteBytes) -> Int where WriteBytes.Element == UInt8 {
+    public func write<WriteBytes: Collection>(bytes: WriteBytes) where WriteBytes.Element == UInt8 {
         self.buffer.write(bytes: bytes)
     }
 

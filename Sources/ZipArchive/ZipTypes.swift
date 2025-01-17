@@ -95,6 +95,23 @@ public enum Zip {
         }
     }
 
+    public struct FileHeader32 {
+        public let flags: FileFlags
+        public let compressionMethod: FileCompressionMethod
+        public let uncompressedSize: Int32
+        public let filename: String
+        public let comment: String
+        public let externalAttributes: UInt32
+        let extraFields: [ExtraField]
+        let _fileModificationTime: UInt16
+        let _fileModificationDate: UInt16
+        let crc32: UInt32
+        let compressedSize: Int32
+        let diskStart: UInt16
+        let internalAttribute: UInt16
+        let offsetOfLocalHeader: Int32
+    }
+
     public struct ExtraField {
         let header: UInt16
         let data: ArraySlice<UInt8>
@@ -123,6 +140,18 @@ public enum Zip {
         let extraFields: [ExtraField]
     }
 
+    struct LocalFileHeader32 {
+        let flags: FileFlags
+        let compressionMethod: FileCompressionMethod
+        let fileModificationTime: UInt16
+        let fileModificationDate: UInt16
+        let crc32: UInt32
+        let compressedSize: Int32
+        let uncompressedSize: Int32
+        let filename: String
+        let extraFields: [ExtraField]
+    }
+
     struct Zip64EndOfCentralDirectory {
         //let versionMadeBy: UInt16
         //let versionNeeded: UInt16
@@ -147,6 +176,16 @@ public enum Zip {
         let totalEntries: Int64
         let centralDirectorySize: Int64
         let offsetOfCentralDirectory: Int64
+        let comment: String
+    }
+
+    struct EndOfCentralDirectory32 {
+        let diskNumber: UInt16
+        let diskNumberCentralDirectoryStarts: UInt16
+        let diskEntries: Int16
+        let totalEntries: Int16
+        let centralDirectorySize: Int32
+        let offsetOfCentralDirectory: Int32
         let comment: String
     }
 

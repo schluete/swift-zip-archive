@@ -62,7 +62,7 @@ struct ZipMemoryStorageTests {
     @Test func testWrite() throws {
         let file = ZipMemoryStorage<[UInt8]>()
         try file.seekEnd()
-        #expect(file.write(bytes: [1, 2, 3]) == 3)
+        file.write(bytes: [1, 2, 3])
         try file.seek(0)
         #expect(try file.read(3) == [1, 2, 3])
     }
@@ -70,7 +70,7 @@ struct ZipMemoryStorageTests {
     @Test func testAppendingWrite() throws {
         let file = ZipMemoryStorage<[UInt8]>([1, 2, 3])
         try file.seekEnd()
-        #expect(file.write(bytes: [4, 5, 6]) == 3)
+        file.write(bytes: [4, 5, 6])
         try file.seek(0)
         #expect(try file.read(6) == [1, 2, 3, 4, 5, 6])
     }
@@ -78,11 +78,11 @@ struct ZipMemoryStorageTests {
     @Test func testReplacingWrite() throws {
         let file = ZipMemoryStorage<[UInt8]>([1, 2, 3, 4, 5, 6])
         try file.seek(2)
-        #expect(file.write(bytes: [7, 8, 9]) == 3)
+        file.write(bytes: [7, 8, 9])
         try file.seek(0)
         #expect(try file.read(6) == [1, 2, 7, 8, 9, 6])
         try file.seek(5)
-        #expect(file.write(bytes: [7, 8, 9]) == 3)
+        file.write(bytes: [7, 8, 9])
         try file.seek(0)
         #expect(try file.read(8) == [1, 2, 7, 8, 9, 7, 8, 9])
     }
@@ -97,7 +97,7 @@ struct ZipMemoryStorageTests {
     @Test func testTruncateAndWrite() throws {
         let file = ZipMemoryStorage([UInt8]("Hello world".utf8))
         try file.truncate(5)
-        _ = file.write(bytes: ", world!".utf8)
+        file.write(bytes: ", world!".utf8)
         try file.seek(0)
         #expect(try file.read(13) == .init("Hello, world!".utf8))
     }

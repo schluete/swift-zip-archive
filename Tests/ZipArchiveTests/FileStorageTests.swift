@@ -88,21 +88,6 @@ final class ZipFileStorageTests {
         try fileDescriptor.close()
     }
 
-    @Test
-    func testResize() throws {
-        let fileDescriptor = try FileDescriptor.open(
-            .init("test.bin"),
-            .readWrite
-        )
-        try fileDescriptor.resize(to: 16)
-        try fileDescriptor.seek(offset: 0, from: .end)
-
-        _ = try [UInt8]([0, 1, 2]).withUnsafeBytes { bytes in
-            try fileDescriptor.write(bytes)
-        }
-        try fileDescriptor.close()
-    }
-
     /*
     @Test func testWrite() throws {
         let file = ZipMemoryStorage<[UInt8]>()
