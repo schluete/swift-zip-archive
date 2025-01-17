@@ -6,7 +6,8 @@ struct ZipArchiveWriterTests {
     @Test
     func testCreateEmptyZipArchive() throws {
         let zipFileWrite = ZipArchiveWriter()
-        #expect(try zipFileWrite.writeToBuffer() == [UInt8]([80, 75, 5, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])[...])
+        let buffer = try zipFileWrite.writeToBuffer()
+        #expect(buffer == [UInt8]([80, 75, 5, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])[...])
     }
 
     @Test
