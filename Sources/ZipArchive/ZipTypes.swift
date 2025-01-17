@@ -47,69 +47,22 @@ public enum Zip {
     }
 
     public struct FileHeader {
+        //let versionMadeBy: UInt16
+        let versionNeeded: UInt16
         public let flags: FileFlags
         public let compressionMethod: FileCompressionMethod
-        public let uncompressedSize: Int64
-        public let filename: String
-        public let comment: String
-        public let externalAttributes: UInt32
-        let extraFields: [ExtraField]
         let _fileModificationTime: UInt16
         let _fileModificationDate: UInt16
         let crc32: UInt32
         let compressedSize: Int64
+        public let uncompressedSize: Int64
+        public let filename: String
+        let extraFields: [ExtraField]
+        public let comment: String
         let diskStart: UInt32
         let internalAttribute: UInt16
-        let offsetOfLocalHeader: Int64
-
-        internal init(
-            flags: Zip.FileFlags,
-            compressionMethod: Zip.FileCompressionMethod,
-            fileModificationTime: UInt16,
-            fileModificationDate: UInt16,
-            crc32: UInt32,
-            compressedSize: Int64,
-            uncompressedSize: Int64,
-            filename: String,
-            extraFields: [ExtraField],
-            comment: String,
-            diskStart: UInt32,
-            internalAttribute: UInt16,
-            externalAttributes: UInt32,
-            offsetOfLocalHeader: Int64
-        ) {
-            self.flags = flags
-            self.compressionMethod = compressionMethod
-            self._fileModificationTime = fileModificationTime
-            self._fileModificationDate = fileModificationDate
-            self.crc32 = crc32
-            self.compressedSize = compressedSize
-            self.uncompressedSize = uncompressedSize
-            self.filename = filename
-            self.extraFields = extraFields
-            self.comment = comment
-            self.diskStart = diskStart
-            self.internalAttribute = internalAttribute
-            self.externalAttributes = externalAttributes
-            self.offsetOfLocalHeader = offsetOfLocalHeader
-        }
-    }
-
-    public struct FileHeader32 {
-        public let flags: FileFlags
-        public let compressionMethod: FileCompressionMethod
-        public let uncompressedSize: Int32
-        public let filename: String
-        public let comment: String
         public let externalAttributes: UInt32
-        let extraFields: [ExtraField]
-        let _fileModificationTime: UInt16
-        let _fileModificationDate: UInt16
-        let crc32: UInt32
-        let compressedSize: Int32
-        let diskStart: UInt16
-        let internalAttribute: UInt16
-        let offsetOfLocalHeader: Int32
+        var offsetOfLocalHeader: Int64
     }
 
     public struct ExtraField {
@@ -129,6 +82,8 @@ public enum Zip {
     }
 
     struct LocalFileHeader {
+        //let versionMadeBy: UInt16
+        let versionNeeded: UInt16
         let flags: FileFlags
         let compressionMethod: FileCompressionMethod
         let fileModificationTime: UInt16
@@ -140,21 +95,9 @@ public enum Zip {
         let extraFields: [ExtraField]
     }
 
-    struct LocalFileHeader32 {
-        let flags: FileFlags
-        let compressionMethod: FileCompressionMethod
-        let fileModificationTime: UInt16
-        let fileModificationDate: UInt16
-        let crc32: UInt32
-        let compressedSize: Int32
-        let uncompressedSize: Int32
-        let filename: String
-        let extraFields: [ExtraField]
-    }
-
     struct Zip64EndOfCentralDirectory {
         //let versionMadeBy: UInt16
-        //let versionNeeded: UInt16
+        let versionNeeded: UInt16
         let diskNumber: UInt32
         let diskNumberCentralDirectoryStarts: UInt32
         let diskEntries: Int64
@@ -170,29 +113,19 @@ public enum Zip {
     }
 
     struct EndOfCentralDirectory {
-        let diskNumber: UInt32
-        let diskNumberCentralDirectoryStarts: UInt32
-        let diskEntries: Int64
-        let totalEntries: Int64
-        let centralDirectorySize: Int64
-        let offsetOfCentralDirectory: Int64
-        let comment: String
+        var diskNumber: UInt32
+        var diskNumberCentralDirectoryStarts: UInt32
+        var diskEntries: Int64
+        var totalEntries: Int64
+        var centralDirectorySize: Int64
+        var offsetOfCentralDirectory: Int64
+        var comment: String
     }
 
-    struct EndOfCentralDirectory32 {
-        let diskNumber: UInt16
-        let diskNumberCentralDirectoryStarts: UInt16
-        let diskEntries: Int16
-        let totalEntries: Int16
-        let centralDirectorySize: Int32
-        let offsetOfCentralDirectory: Int32
-        let comment: String
-    }
-
-    static let localFileHeaderSignature = 0x0403_4b50
-    static let fileHeaderSignature = 0x0201_4b50
-    static let digitalSignatureSignature = 0x0505_4b50
-    static let zip64EndOfCentralDirectorySignature = 0x0606_4b50
-    static let zip64EndOfCentralLocatorSignature = 0x0706_4b50
-    static let endOfCentralDirectorySignature = 0x0605_4b50
+    static let localFileHeaderSignature: UInt32 = 0x0403_4b50
+    static let fileHeaderSignature: UInt32 = 0x0201_4b50
+    static let digitalSignatureSignature: UInt32 = 0x0505_4b50
+    static let zip64EndOfCentralDirectorySignature: UInt32 = 0x0606_4b50
+    static let zip64EndOfCentralLocatorSignature: UInt32 = 0x0706_4b50
+    static let endOfCentralDirectorySignature: UInt32 = 0x0605_4b50
 }

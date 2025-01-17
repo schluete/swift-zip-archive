@@ -42,9 +42,10 @@ struct ZipArchiveReaderTests {
     func loadZipArchive() throws {
         let filePath = Bundle.module.path(forResource: "source", ofType: "zip")!
         try ZipArchiveReader.withFile(filePath) { zipArchiveReader in
-            let ZipArchiveDirectory = try zipArchiveReader.readDirectory()
-            let file = try zipArchiveReader.readFile(ZipArchiveDirectory[2])
-            print(String(decoding: file, as: UTF8.self))
+            let zipArchiveDirectory = try zipArchiveReader.readDirectory()
+            let packageSwiftRecord = try #require(zipArchiveDirectory.first { $0.filename == "Sources/Zip/MemoryFileStorage.swift" })
+            let file = try zipArchiveReader.readFile(packageSwiftRecord)
+            #expect(String(decoding: file[...26], as: UTF8.self) == "public final class ZipFileM")
         }
     }
 

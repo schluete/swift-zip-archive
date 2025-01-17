@@ -2,14 +2,14 @@ import CZipZlib
 
 /// Zip file reader type
 public final class ZipArchiveReader<Storage: ZipReadableStorage> {
-    let file: Storage
-    let endOfCentralDirectory: Zip.EndOfCentralDirectory
+    let storage: Storage
+    let endOfCentralDirectoryRecord: Zip.EndOfCentralDirectory
     let compressionMethods: ZipCompressionMethodsMap
     var parsingDirectory: Bool
 
     init(_ file: Storage) throws {
-        self.file = file
-        self.endOfCentralDirectory = try Self.readEndOfCentralDirectory(file: file)
+        self.storage = file
+        self.endOfCentralDirectoryRecord = try Self.readEndOfCentralDirectory(file: file)
         self.compressionMethods = [
             Zip.FileCompressionMethod.noCompression: DoNothingCompressor(),
             Zip.FileCompressionMethod.deflated: ZlibDeflateCompressor(windowBits: 15),
@@ -26,10 +26,10 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
     /// Read directory from zip file into an array
     public func readDirectory() throws -> [Zip.FileHeader] {
         var directory: [Zip.FileHeader] = []
-        try file.seek(numericCast(endOfCentralDirectory.offsetOfCentralDirectory))
-        let bytes = try file.readBytes(length: numericCast(endOfCentralDirectory.centralDirectorySize))
+        try storage.seek(numericCast(endOfCentralDirectoryRecord.offsetOfCentralDirectory))
+        let bytes = try storage.readBytes(length: numericCast(endOfCentralDirectoryRecord.centralDirectorySize))
         let memoryStorage = ZipMemoryStorage(bytes)
-        for _ in 0..<endOfCentralDirectory.diskEntries {
+        for _ in 0..<endOfCentralDirectoryRecord.diskEntries {
             let fileHeader = try self.readFileHeader(from: memoryStorage)
             directory.append(fileHeader)
         }
@@ -47,9 +47,9 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
         defer {
             self.parsingDirectory = false
         }
-        try file.seek(numericCast(endOfCentralDirectory.offsetOfCentralDirectory))
-        for _ in 0..<endOfCentralDirectory.diskEntries {
-            let fileHeader = try self.readFileHeader(from: file)
+        try storage.seek(numericCast(endOfCentralDirectoryRecord.offsetOfCentralDirectory))
+        for _ in 0..<endOfCentralDirectoryRecord.diskEntries {
+            let fileHeader = try self.readFileHeader(from: storage)
             try process(fileHeader)
         }
     }
@@ -57,14 +57,14 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
     /// Read file from zip file
     public func readFile(_ file: Zip.FileHeader) throws -> [UInt8] {
         precondition(self.parsingDirectory == false, "Cannot read file while parsing the directory")
-        try self.file.seek(numericCast(file.offsetOfLocalHeader))
+        try self.storage.seek(numericCast(file.offsetOfLocalHeader))
         let localFileHeader = try readLocalFileHeader()
         guard localFileHeader.filename == file.filename else { throw ZipArchiveReaderError.invalidFileHeader }
         guard let compressor = self.compressionMethods[localFileHeader.compressionMethod] else {
             throw ZipArchiveReaderError.unsupportedCompressionMethod
         }
         // Read bytes and uncompress
-        let fileBytes = try self.file.readBytes(length: numericCast(localFileHeader.compressedSize))
+        let fileBytes = try self.storage.readBytes(length: numericCast(localFileHeader.compressedSize))
         let uncompressedBytes = try compressor.inflate(from: fileBytes, uncompressedSize: numericCast(localFileHeader.uncompressedSize))
         // Verify CRC32
         let crc = uncompressedBytes.withUnsafeBytes { bytes in
@@ -82,9 +82,9 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
 
     func readLocalFileHeader() throws -> Zip.LocalFileHeader {
         let (
-            signature, _, flags, compression, modTime, modDate, crc32, compressedSize, uncompressedSize, fileNameLength, extraFieldsLength
+            signature, versionNeeded, flags, compression, modTime, modDate, crc32, compressedSize, uncompressedSize, fileNameLength, extraFieldsLength
         ) =
-            try file.readIntegers(
+            try storage.readIntegers(
                 UInt32.self,
                 UInt16.self,
                 UInt16.self,
@@ -98,8 +98,8 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
                 UInt16.self
             )
         guard signature == Zip.localFileHeaderSignature else { throw ZipArchiveReaderError.invalidFileHeader }
-        let filename = try file.readString(length: numericCast(fileNameLength))
-        let extraFieldsBuffer = try file.readBytes(length: numericCast(extraFieldsLength))
+        let filename = try storage.readString(length: numericCast(fileNameLength))
+        let extraFieldsBuffer = try storage.readBytes(length: numericCast(extraFieldsLength))
         let extraFields = try readExtraFields(extraFieldsBuffer)
 
         /// Extract ZIP64 extra field
@@ -116,6 +116,7 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
         }
         guard let compressionMethod = Zip.FileCompressionMethod(rawValue: compression) else { throw ZipArchiveReaderError.invalidFileHeader }
         return .init(
+            versionNeeded: versionNeeded,
             flags: .init(rawValue: flags),
             compressionMethod: compressionMethod,
             fileModificationTime: modTime,
@@ -130,12 +131,13 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
 
     func readFileHeader(from storage: some ZipReadableStorage) throws -> Zip.FileHeader {
         let (
-            signature, _, flags, compression, modTime, modDate, crc32, compressedSize, uncompressedSize, fileNameLength,
+            signature, _, versionNeeded, flags, compression, modTime, modDate, crc32, compressedSize, uncompressedSize, fileNameLength,
             extraFieldsLength, commentLength, diskStart, internalAttribute, externalAttribute, offsetOfLocalHeader
         ) =
             try storage.readIntegers(
                 UInt32.self,
-                UInt32.self,
+                UInt16.self,
+                UInt16.self,
                 UInt16.self,
                 UInt16.self,
                 UInt16.self,
@@ -181,10 +183,11 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
         }
         guard let compressionMethod = Zip.FileCompressionMethod(rawValue: compression) else { throw ZipArchiveReaderError.invalidFileHeader }
         return .init(
+            versionNeeded: versionNeeded,
             flags: .init(rawValue: flags),
             compressionMethod: compressionMethod,
-            fileModificationTime: modTime,
-            fileModificationDate: modDate,
+            _fileModificationTime: modTime,
+            _fileModificationDate: modDate,
             crc32: crc32,
             compressedSize: compressedSize64,
             uncompressedSize: uncompressedSize64,
@@ -291,10 +294,14 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
     }
 
     static func readZip64EndOfCentralDirectory(file: some ZipReadableStorage) throws -> Zip.Zip64EndOfCentralDirectory {
-        let (signature, _, diskNumber, diskNumberCentralDirectoryStarts, diskEntries, totalEntries, centralDirectorySize, offsetOfCentralDirectory) =
+        let (
+            signature, _, versionNeeded, diskNumber, diskNumberCentralDirectoryStarts, diskEntries, totalEntries, centralDirectorySize,
+            offsetOfCentralDirectory
+        ) =
             try file.readIntegers(
                 UInt32.self,
-                UInt32.self,
+                UInt16.self,
+                UInt16.self,
                 UInt32.self,
                 UInt32.self,
                 Int64.self,
@@ -304,6 +311,7 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
             )
         guard signature == Zip.zip64EndOfCentralDirectorySignature else { throw ZipArchiveReaderError.invalidDirectory }
         return .init(
+            versionNeeded: versionNeeded,
             diskNumber: diskNumber,
             diskNumberCentralDirectoryStarts: diskNumberCentralDirectoryStarts,
             diskEntries: diskEntries,

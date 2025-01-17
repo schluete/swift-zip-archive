@@ -1,10 +1,14 @@
-public final class ZipMemoryStorage<Bytes: RangeReplaceableCollection>: ZipReadableStorage, ZipWriteableStorage
+public protocol ZipMemoryStorageProtocol: ZipReadableStorage, ZipWriteableStorage {
+    init()
+}
+
+public final class ZipMemoryStorage<Bytes: RangeReplaceableCollection>: ZipReadableStorage, ZipWriteableStorage, ZipMemoryStorageProtocol
 where Bytes.Element == UInt8, Bytes.Index == Int {
     @usableFromInline
     var buffer: MemoryBuffer<Bytes>
 
     @inlinable
-    init() {
+    public init() {
         self.buffer = .init()
     }
 
