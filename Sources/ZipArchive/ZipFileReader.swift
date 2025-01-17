@@ -1,18 +1,23 @@
 import CZipZlib
 
 /// Zip file reader type
-public class ZipArchiveReader<Storage: ZipReadableStorage> {
+public final class ZipArchiveReader<Storage: ZipReadableStorage> {
     let file: Storage
     let endOfCentralDirectory: Zip.EndOfCentralDirectory
     let compressionMethods: ZipCompressionMethodsMap
 
-    public init(_ file: Storage) throws {
+    init(_ file: Storage) throws {
         self.file = file
         self.endOfCentralDirectory = try Self.readEndOfCentralDirectory(file: file)
         self.compressionMethods = [
             Zip.FileCompressionMethod.noCompression: DoNothingCompressor(),
             Zip.FileCompressionMethod.deflated: ZlibDeflateCompressor(windowBits: 15),
         ]
+    }
+
+    convenience public init<Bytes: RangeReplaceableCollection>(bytes: Bytes) throws
+    where Bytes.Element == UInt8, Bytes.Index == Int, Storage == ZipMemoryStorage<Bytes> {
+        try self.init(ZipMemoryStorage(bytes))
     }
 
     /// Read directory from zip file

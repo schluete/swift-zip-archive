@@ -30,29 +30,32 @@ struct ZipArchiveReaderTests {
     @Test
     func loadZipDirectory() throws {
         let filePath = Bundle.module.path(forResource: "source", ofType: "zip")!
-        let ZipArchiveReader = try ZipArchiveReader(ZipFileStorage(filePath))
-        let ZipArchiveDirectory = try ZipArchiveReader.readDirectory()
-        #expect(ZipArchiveDirectory.count == 9)
-        #expect(ZipArchiveDirectory[0].filename == "Sources/Zip/")
-        #expect(ZipArchiveDirectory[8].filename == "Tests/ZipTests/ZipFileReaderTests.swift")
+        try ZipArchiveReader.withFile(filePath) { zipArchiveReader in
+            let ZipArchiveDirectory = try zipArchiveReader.readDirectory()
+            #expect(ZipArchiveDirectory.count == 9)
+            #expect(ZipArchiveDirectory[0].filename == "Sources/Zip/")
+            #expect(ZipArchiveDirectory[8].filename == "Tests/ZipTests/ZipFileReaderTests.swift")
+        }
     }
 
     @Test
     func loadZipArchive() throws {
         let filePath = Bundle.module.path(forResource: "source", ofType: "zip")!
-        let ZipArchiveReader = try ZipArchiveReader(ZipFileStorage(filePath))
-        let ZipArchiveDirectory = try ZipArchiveReader.readDirectory()
-        let file = try ZipArchiveReader.readFile(ZipArchiveDirectory[2])
-        print(String(decoding: file, as: UTF8.self))
+        try ZipArchiveReader.withFile(filePath) { zipArchiveReader in
+            let ZipArchiveDirectory = try zipArchiveReader.readDirectory()
+            let file = try zipArchiveReader.readFile(ZipArchiveDirectory[2])
+            print(String(decoding: file, as: UTF8.self))
+        }
     }
 
     @Test
     func loadZip64File() throws {
         let filePath = Bundle.module.path(forResource: "hello64", ofType: "zip")!
-        let ZipArchiveReader = try ZipArchiveReader(ZipFileStorage(filePath))
-        let ZipArchiveDirectory = try ZipArchiveReader.readDirectory()
-        let file = try ZipArchiveReader.readFile(ZipArchiveDirectory[0])
-        #expect(ZipArchiveDirectory[0].filename == "-")
-        #expect(String(decoding: file, as: UTF8.self) == "Hello, world!\n")
+        try ZipArchiveReader.withFile(filePath) { zipArchiveReader in
+            let ZipArchiveDirectory = try zipArchiveReader.readDirectory()
+            let file = try zipArchiveReader.readFile(ZipArchiveDirectory[0])
+            #expect(ZipArchiveDirectory[0].filename == "-")
+            #expect(String(decoding: file, as: UTF8.self) == "Hello, world!\n")
+        }
     }
 }

@@ -4,12 +4,12 @@ where Bytes.Element == UInt8, Bytes.Index == Int {
     var buffer: MemoryBuffer<Bytes>
 
     @inlinable
-    public init() {
+    init() {
         self.buffer = .init()
     }
 
     @inlinable
-    public init(_ buffer: Bytes) {
+    init(_ buffer: Bytes) {
         self.buffer = .init(buffer)
     }
 

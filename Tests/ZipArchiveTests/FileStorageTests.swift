@@ -1,7 +1,8 @@
 import Foundation
 import SystemPackage
 import Testing
-import ZipArchive
+
+@testable import ZipArchive
 
 struct ZipMemoryStorageTests {
     let buffer: [UInt8] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -96,26 +97,46 @@ final class ZipFileStorageTests {
         (10, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
     ])
     func testRead(values: (read: Int, result: [UInt8])) throws {
-        let file = try ZipFileStorage(filePath)
+        let fileDescriptor = try FileDescriptor.open(
+            .init(filePath),
+            .readOnly
+        )
+        let file = try ZipFileStorage(fileDescriptor)
         #expect(try .init(file.read(values.read)) == values.result)
+        try fileDescriptor.close()
     }
 
     @Test(arguments: [-1, 11])
     func testReadFails(read: Int) throws {
-        let file = try ZipFileStorage(filePath)
+        let fileDescriptor = try FileDescriptor.open(
+            .init(filePath),
+            .readOnly
+        )
+        let file = try ZipFileStorage(fileDescriptor)
         #expect(throws: ZipFileStorageError.self) { try file.read(read) }
+        try fileDescriptor.close()
     }
 
     @Test(arguments: [0, 5, 10])
     func testSeek(offset: Int) throws {
-        let file = try ZipFileStorage(filePath)
+        let fileDescriptor = try FileDescriptor.open(
+            .init(filePath),
+            .readOnly
+        )
+        let file = try ZipFileStorage(fileDescriptor)
         #expect(throws: Never.self) { try file.seek(offset) }
+        try fileDescriptor.close()
     }
 
     @Test(arguments: [-1])
     func testSeekFails(offset: Int) throws {
-        let file = try ZipFileStorage(filePath)
+        let fileDescriptor = try FileDescriptor.open(
+            .init(filePath),
+            .readOnly
+        )
+        let file = try ZipFileStorage(fileDescriptor)
         #expect(throws: ZipFileStorageError.self) { try file.seek(offset) }
+        try fileDescriptor.close()
     }
 
     @Test(arguments: [
@@ -125,9 +146,14 @@ final class ZipFileStorageTests {
         (8, 10, [8, 9]),
     ])
     func testSeekAndRead(values: (seek: Int, readTo: Int, result: [UInt8])) throws {
-        let file = try ZipFileStorage(filePath)
+        let fileDescriptor = try FileDescriptor.open(
+            .init(filePath),
+            .readOnly
+        )
+        let file = try ZipFileStorage(fileDescriptor)
         try file.seek(values.seek)
         #expect(try .init(file.read(values.readTo - values.seek)) == values.result)
+        try fileDescriptor.close()
     }
 
     @Test(arguments: [
@@ -136,9 +162,14 @@ final class ZipFileStorageTests {
         (10, 1),
     ])
     func testSeekAndReadFail(values: (seek: Int, readTo: Int)) throws {
-        let file = try ZipFileStorage(filePath)
+        let fileDescriptor = try FileDescriptor.open(
+            .init(filePath),
+            .readOnly
+        )
+        let file = try ZipFileStorage(fileDescriptor)
         try file.seek(values.seek)
         #expect(throws: ZipFileStorageError.self) { try file.read(values.readTo) }
+        try fileDescriptor.close()
     }
     /*
     @Test func testWrite() throws {

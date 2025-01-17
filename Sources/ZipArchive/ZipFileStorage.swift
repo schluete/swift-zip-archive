@@ -1,19 +1,12 @@
 import SystemPackage
 
-public class ZipFileStorage: ZipReadableStorage {
+public struct ZipFileStorage: ZipReadableStorage {
     @usableFromInline
     let fileDescriptor: FileDescriptor
 
     @inlinable
-    public init(_ filename: String) throws {
-        self.fileDescriptor = try FileDescriptor.open(
-            .init(filename),
-            .readOnly
-        )
-    }
-
-    deinit {
-        try? fileDescriptor.close()
+    init(_ fileDescriptor: FileDescriptor) throws {
+        self.fileDescriptor = fileDescriptor
     }
 
     @inlinable
@@ -68,4 +61,24 @@ public class ZipFileStorage: ZipReadableStorage {
             throw .internalError
         }
     }
+}
+
+extension ZipArchiveReader where Storage == ZipFileStorage {
+    static func withFile<Value>(_ filename: String, process: (ZipArchiveReader) throws -> Value) throws -> Value {
+        let fileDescriptor = try FileDescriptor.open(
+            .init(filename),
+            .readOnly
+        )
+        let value: Value
+        do {
+            let zipArchiveReader = try ZipArchiveReader(ZipFileStorage(fileDescriptor))
+            value = try process(zipArchiveReader)
+        } catch {
+            try? fileDescriptor.close()
+            throw error
+        }
+        try fileDescriptor.close()
+        return value
+    }
+
 }
