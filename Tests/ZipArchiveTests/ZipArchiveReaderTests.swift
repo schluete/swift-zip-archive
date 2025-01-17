@@ -24,7 +24,7 @@ struct ZipArchiveReaderTests {
         let ZipArchiveReader = try ZipArchiveReader(ZipMemoryStorage(data))
         let ZipArchiveDirectory = try ZipArchiveReader.readDirectory()
         print("Loading \(ZipArchiveDirectory[2].filename)")
-        let file = try ZipArchiveReader.readFile(ZipArchiveDirectory[2])
+        _ = try ZipArchiveReader.readFile(ZipArchiveDirectory[2])
     }
 
     @Test

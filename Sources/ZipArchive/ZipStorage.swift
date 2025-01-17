@@ -1,8 +1,8 @@
 /// Protocol for storage
 public protocol ZipStorage {
-    @discardableResult func seek(_ index: Int) throws(ZipFileStorageError) -> Int
-    @discardableResult func seekOffset(_ index: Int) throws(ZipFileStorageError) -> Int
-    @discardableResult func seekEnd(_ offset: Int) throws(ZipFileStorageError) -> Int
+    @discardableResult func seek(_ index: Int64) throws(ZipFileStorageError) -> Int64
+    @discardableResult func seekOffset(_ index: Int64) throws(ZipFileStorageError) -> Int64
+    @discardableResult func seekEnd(_ offset: Int64) throws(ZipFileStorageError) -> Int64
 }
 
 public protocol ZipReadableStorage: ZipStorage {
@@ -54,8 +54,9 @@ extension ZipReadableStorage {
     }
 }
 
-public protocol ZipWriteableStorage: ZipStorage {
+public protocol ZipWriteableStorage: ZipReadableStorage {
     func write<Bytes: Collection>(bytes: Bytes) throws(ZipFileStorageError) -> Int where Bytes.Element == UInt8
+    func truncate(_ size: Int64) throws
 }
 
 public struct ZipFileStorageError: Error {

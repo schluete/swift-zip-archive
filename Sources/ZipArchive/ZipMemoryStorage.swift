@@ -28,11 +28,9 @@ where Bytes.Element == UInt8, Bytes.Index == Int {
     }
 
     @inlinable
-    @discardableResult
-    public func seek(_ baseOffset: Int) throws(ZipFileStorageError) -> Int {
+    public func truncate(_ size: Int64) throws(ZipFileStorageError) {
         do {
-            try self.buffer.seek(baseOffset)
-            return self.buffer.position
+            try self.buffer.truncate(size)
         } catch {
             throw .init(from: error)
         }
@@ -40,10 +38,10 @@ where Bytes.Element == UInt8, Bytes.Index == Int {
 
     @inlinable
     @discardableResult
-    public func seekOffset(_ offset: Int) throws(ZipFileStorageError) -> Int {
+    public func seek(_ baseOffset: Int64) throws(ZipFileStorageError) -> Int64 {
         do {
-            try self.buffer.seekOffset(offset)
-            return self.buffer.position
+            try self.buffer.seek(numericCast(baseOffset))
+            return numericCast(self.buffer.position)
         } catch {
             throw .init(from: error)
         }
@@ -51,10 +49,21 @@ where Bytes.Element == UInt8, Bytes.Index == Int {
 
     @inlinable
     @discardableResult
-    public func seekEnd(_ offset: Int = 0) throws(ZipFileStorageError) -> Int {
+    public func seekOffset(_ offset: Int64) throws(ZipFileStorageError) -> Int64 {
         do {
-            try self.buffer.seekEnd(offset)
-            return self.buffer.position
+            try self.buffer.seekOffset(numericCast(offset))
+            return numericCast(self.buffer.position)
+        } catch {
+            throw .init(from: error)
+        }
+    }
+
+    @inlinable
+    @discardableResult
+    public func seekEnd(_ offset: Int64 = 0) throws(ZipFileStorageError) -> Int64 {
+        do {
+            try self.buffer.seekEnd(numericCast(offset))
+            return numericCast(self.buffer.position)
         } catch {
             throw .init(from: error)
         }

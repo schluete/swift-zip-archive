@@ -103,15 +103,15 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
         let extraFields = try readExtraFields(extraFieldsBuffer)
 
         /// Extract ZIP64 extra field
-        var uncompressedSize64: UInt64 = numericCast(uncompressedSize)
-        var compressedSize64: UInt64 = numericCast(compressedSize)
+        var uncompressedSize64: Int64 = numericCast(uncompressedSize)
+        var compressedSize64: Int64 = numericCast(compressedSize)
         if let zip64ExtraField = extraFields.first(where: { $0.header == Zip.ExtraFieldHeader.zip64.rawValue }) {
             var memoryBuffer = MemoryBuffer(zip64ExtraField.data)
             if uncompressedSize == 0xffff_ffff {
-                uncompressedSize64 = try memoryBuffer.readInteger(as: UInt64.self)
+                uncompressedSize64 = try memoryBuffer.readInteger(as: Int64.self)
             }
             if compressedSize == 0xffff_ffff {
-                compressedSize64 = try memoryBuffer.readInteger(as: UInt64.self)
+                compressedSize64 = try memoryBuffer.readInteger(as: Int64.self)
             }
         }
         guard let compressionMethod = Zip.FileCompressionMethod(rawValue: compression) else { throw ZipArchiveReaderError.invalidFileHeader }
@@ -160,20 +160,20 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
         let extraFields = try readExtraFields(extraFieldsBuffer)
 
         /// Extract ZIP64 extra field
-        var uncompressedSize64: UInt64 = numericCast(uncompressedSize)
-        var compressedSize64: UInt64 = numericCast(compressedSize)
-        var offsetOfLocalHeader64: UInt64 = numericCast(offsetOfLocalHeader)
+        var uncompressedSize64: Int64 = numericCast(uncompressedSize)
+        var compressedSize64: Int64 = numericCast(compressedSize)
+        var offsetOfLocalHeader64: Int64 = numericCast(offsetOfLocalHeader)
         var diskStart32: UInt32 = numericCast(diskStart)
         if let zip64ExtraField = extraFields.first(where: { $0.header == Zip.ExtraFieldHeader.zip64.rawValue }) {
             var memoryBuffer = MemoryBuffer(zip64ExtraField.data)
             if uncompressedSize == 0xffff_ffff {
-                uncompressedSize64 = try memoryBuffer.readInteger(as: UInt64.self)
+                uncompressedSize64 = try memoryBuffer.readInteger(as: Int64.self)
             }
             if compressedSize == 0xffff_ffff {
-                compressedSize64 = try memoryBuffer.readInteger(as: UInt64.self)
+                compressedSize64 = try memoryBuffer.readInteger(as: Int64.self)
             }
             if offsetOfLocalHeader == 0xffff_ffff {
-                offsetOfLocalHeader64 = try memoryBuffer.readInteger(as: UInt64.self)
+                offsetOfLocalHeader64 = try memoryBuffer.readInteger(as: Int64.self)
             }
             if diskStart == 0xffff {
                 diskStart32 = try memoryBuffer.readInteger(as: UInt32.self)
@@ -234,10 +234,10 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
 
         // Zip64
         var diskNumber32: UInt32 = numericCast(diskNumber)
-        var diskEntries64: UInt64 = numericCast(diskEntries)
-        var totalEntries64: UInt64 = numericCast(totalEntries)
-        var centralDirectorySize64: UInt64 = numericCast(centralDirectorySize)
-        var offsetOfCentralDirectory64: UInt64 = numericCast(offsetOfCentralDirectory)
+        var diskEntries64: Int64 = numericCast(diskEntries)
+        var totalEntries64: Int64 = numericCast(totalEntries)
+        var centralDirectorySize64: Int64 = numericCast(centralDirectorySize)
+        var offsetOfCentralDirectory64: Int64 = numericCast(offsetOfCentralDirectory)
         var diskNumberCentralDirectoryStarts32: UInt32 = numericCast(diskNumberCentralDirectoryStarts)
         if let zip64EndOfCentralLocator {
             if diskNumberCentralDirectoryStarts == 0xffff {
@@ -297,10 +297,10 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
                 UInt32.self,
                 UInt32.self,
                 UInt32.self,
-                UInt64.self,
-                UInt64.self,
-                UInt64.self,
-                UInt64.self
+                Int64.self,
+                Int64.self,
+                Int64.self,
+                Int64.self
             )
         guard signature == Zip.zip64EndOfCentralDirectorySignature else { throw ZipArchiveReaderError.invalidDirectory }
         return .init(
@@ -314,7 +314,7 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
     }
 
     static func searchForEndOfCentralDirectory(file: some ZipReadableStorage) throws -> Int {
-        let fileChunkLength = 1024
+        let fileChunkLength: Int64 = 1024
         let fileSize = try file.seekEnd(0)
 
         var filePosition = fileSize - 18
@@ -323,10 +323,10 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
             let readSize = min(filePosition, fileChunkLength)
             filePosition -= readSize
             try file.seek(filePosition)
-            let bytes = try file.read(readSize)
+            let bytes = try file.read(numericCast(readSize))
             for index in (bytes.startIndex..<bytes.index(bytes.endIndex, offsetBy: -3)).reversed() {
                 if bytes[index] == 0x50, bytes[index + 1] == 0x4b, bytes[index + 2] == 0x5, bytes[index + 3] == 0x6 {
-                    let offset = try file.seekOffset(index - bytes.startIndex - readSize)
+                    let offset = try file.seekOffset(numericCast(index - bytes.startIndex) - readSize)
                     return numericCast(offset)
                 }
             }

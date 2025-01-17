@@ -3,10 +3,14 @@ import SystemPackage
 public struct ZipFileStorage: ZipReadableStorage {
     @usableFromInline
     let fileDescriptor: FileDescriptor
+    @usableFromInline
+    let length: Int64
 
     @inlinable
     init(_ fileDescriptor: FileDescriptor) throws {
         self.fileDescriptor = fileDescriptor
+        self.length = try fileDescriptor.seek(offset: 0, from: .end)
+        _ = try fileDescriptor.seek(offset: 0, from: .start)
     }
 
     @inlinable
@@ -27,10 +31,10 @@ public struct ZipFileStorage: ZipReadableStorage {
 
     @inlinable
     @discardableResult
-    public func seek(_ index: Int) throws(ZipFileStorageError) -> Int {
+    public func seek(_ index: Int64) throws(ZipFileStorageError) -> Int64 {
         do {
-            let offset = try self.fileDescriptor.seek(offset: numericCast(index), from: .start)
-            return numericCast(offset)
+            let offset = try self.fileDescriptor.seek(offset: index, from: .start)
+            return offset
         } catch let error as Errno where error == .invalidArgument {
             throw .fileOffsetOutOfRange
         } catch {
@@ -40,10 +44,10 @@ public struct ZipFileStorage: ZipReadableStorage {
 
     @inlinable
     @discardableResult
-    public func seekOffset(_ index: Int) throws(ZipFileStorageError) -> Int {
+    public func seekOffset(_ index: Int64) throws(ZipFileStorageError) -> Int64 {
         do {
-            let offset = try self.fileDescriptor.seek(offset: numericCast(index), from: .current)
-            return numericCast(offset)
+            let offset = try self.fileDescriptor.seek(offset: index, from: .current)
+            return offset
         } catch let error as Errno where error == .invalidArgument {
             throw .fileOffsetOutOfRange
         } catch {
@@ -53,10 +57,10 @@ public struct ZipFileStorage: ZipReadableStorage {
 
     @inlinable
     @discardableResult
-    public func seekEnd(_ offset: Int = 0) throws(ZipFileStorageError) -> Int {
+    public func seekEnd(_ offset: Int64 = 0) throws(ZipFileStorageError) -> Int64 {
         do {
-            let offset = try self.fileDescriptor.seek(offset: numericCast(offset), from: .end)
-            return numericCast(offset)
+            let offset = try self.fileDescriptor.seek(offset: offset, from: .end)
+            return offset
         } catch {
             throw .internalError
         }

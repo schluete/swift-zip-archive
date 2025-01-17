@@ -1,19 +1,19 @@
 @usableFromInline
 struct MemoryBuffer<Bytes: RangeReplaceableCollection> where Bytes.Element == UInt8, Bytes.Index == Int {
     @usableFromInline
-    var buffer: Bytes
+    var buffer: Bytes.SubSequence
     @usableFromInline
     var position: Bytes.Index
 
     @usableFromInline
     init() {
-        self.buffer = Bytes()
+        self.buffer = Bytes()[...]
         self.position = self.buffer.startIndex
     }
 
     @usableFromInline
     init(_ buffer: Bytes) {
-        self.buffer = buffer
+        self.buffer = buffer[...]
         self.position = self.buffer.startIndex
     }
 
@@ -61,6 +61,13 @@ struct MemoryBuffer<Bytes: RangeReplaceableCollection> where Bytes.Element == UI
         let baseOffset = self.buffer.index(self.buffer.endIndex, offsetBy: offset)
         guard (self.buffer.startIndex...self.buffer.endIndex).contains(baseOffset) else { throw .offsetOutOfRange }
         self.position = baseOffset
+    }
+
+    @inlinable
+    mutating public func truncate(_ size: Int64) throws(MemoryBufferError) {
+        guard size <= self.buffer.count else { throw .offsetOutOfRange }
+        self.buffer = self.buffer[..<numericCast(size)]
+        self.position = self.buffer.endIndex
     }
 
     @usableFromInline

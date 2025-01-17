@@ -49,7 +49,7 @@ public enum Zip {
     public struct FileHeader {
         public let flags: FileFlags
         public let compressionMethod: FileCompressionMethod
-        public let uncompressedSize: UInt64
+        public let uncompressedSize: Int64
         public let filename: String
         public let comment: String
         public let externalAttributes: UInt32
@@ -57,10 +57,10 @@ public enum Zip {
         let _fileModificationTime: UInt16
         let _fileModificationDate: UInt16
         let crc32: UInt32
-        let compressedSize: UInt64
+        let compressedSize: Int64
         let diskStart: UInt32
         let internalAttribute: UInt16
-        let offsetOfLocalHeader: UInt64
+        let offsetOfLocalHeader: Int64
 
         internal init(
             flags: Zip.FileFlags,
@@ -68,15 +68,15 @@ public enum Zip {
             fileModificationTime: UInt16,
             fileModificationDate: UInt16,
             crc32: UInt32,
-            compressedSize: UInt64,
-            uncompressedSize: UInt64,
+            compressedSize: Int64,
+            uncompressedSize: Int64,
             filename: String,
             extraFields: [ExtraField],
             comment: String,
             diskStart: UInt32,
             internalAttribute: UInt16,
             externalAttributes: UInt32,
-            offsetOfLocalHeader: UInt64
+            offsetOfLocalHeader: Int64
         ) {
             self.flags = flags
             self.compressionMethod = compressionMethod
@@ -105,9 +105,9 @@ public enum Zip {
     }
 
     struct Zip64ExtendedInformationExtraField {
-        let uncompressedSize: UInt64
-        let compressedSize: UInt64
-        let offsetOfLocalHeader: UInt64
+        let uncompressedSize: Int64
+        let compressedSize: Int64
+        let offsetOfLocalHeader: Int64
         let diskStart: UInt32
     }
 
@@ -117,8 +117,8 @@ public enum Zip {
         let fileModificationTime: UInt16
         let fileModificationDate: UInt16
         let crc32: UInt32
-        let compressedSize: UInt64
-        let uncompressedSize: UInt64
+        let compressedSize: Int64
+        let uncompressedSize: Int64
         let filename: String
         let extraFields: [ExtraField]
     }
@@ -128,10 +128,10 @@ public enum Zip {
         //let versionNeeded: UInt16
         let diskNumber: UInt32
         let diskNumberCentralDirectoryStarts: UInt32
-        let diskEntries: UInt64
-        let totalEntries: UInt64
-        let centralDirectorySize: UInt64
-        let offsetOfCentralDirectory: UInt64
+        let diskEntries: Int64
+        let totalEntries: Int64
+        let centralDirectorySize: Int64
+        let offsetOfCentralDirectory: Int64
     }
 
     struct Zip64EndOfCentralLocator {
@@ -143,10 +143,10 @@ public enum Zip {
     struct EndOfCentralDirectory {
         let diskNumber: UInt32
         let diskNumberCentralDirectoryStarts: UInt32
-        let diskEntries: UInt64
-        let totalEntries: UInt64
-        let centralDirectorySize: UInt64
-        let offsetOfCentralDirectory: UInt64
+        let diskEntries: Int64
+        let totalEntries: Int64
+        let centralDirectorySize: Int64
+        let offsetOfCentralDirectory: Int64
         let comment: String
     }
 
