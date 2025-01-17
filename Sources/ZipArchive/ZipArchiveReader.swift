@@ -5,6 +5,7 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
     let file: Storage
     let endOfCentralDirectory: Zip.EndOfCentralDirectory
     let compressionMethods: ZipCompressionMethodsMap
+    var parsingDirectory: Bool
 
     init(_ file: Storage) throws {
         self.file = file
@@ -13,14 +14,16 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
             Zip.FileCompressionMethod.noCompression: DoNothingCompressor(),
             Zip.FileCompressionMethod.deflated: ZlibDeflateCompressor(windowBits: 15),
         ]
+        self.parsingDirectory = false
     }
 
+    /// Initialize ZipArchiveReader to read from a memory buffer
     convenience public init<Bytes: RangeReplaceableCollection>(bytes: Bytes) throws
     where Bytes.Element == UInt8, Bytes.Index == Int, Storage == ZipMemoryStorage<Bytes> {
         try self.init(ZipMemoryStorage(bytes))
     }
 
-    /// Read directory from zip file
+    /// Read directory from zip file into an array
     public func readDirectory() throws -> [Zip.FileHeader] {
         var directory: [Zip.FileHeader] = []
         try file.seek(numericCast(endOfCentralDirectory.offsetOfCentralDirectory))
@@ -33,8 +36,27 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
         return directory
     }
 
+    /// Parse directory from zip file and run process on each entry
+    ///
+    /// Use this function if you don't want to load the whole of the zip file directory
+    /// into memory
+    ///
+    /// WARNING: You cannot call `readFile` while parsing the directory
+    public func parseDirectory(_ process: (Zip.FileHeader) throws -> Void) throws {
+        self.parsingDirectory = true
+        defer {
+            self.parsingDirectory = false
+        }
+        try file.seek(numericCast(endOfCentralDirectory.offsetOfCentralDirectory))
+        for _ in 0..<endOfCentralDirectory.diskEntries {
+            let fileHeader = try self.readFileHeader(from: file)
+            try process(fileHeader)
+        }
+    }
+
     /// Read file from zip file
     public func readFile(_ file: Zip.FileHeader) throws -> [UInt8] {
+        precondition(self.parsingDirectory == false, "Cannot read file while parsing the directory")
         try self.file.seek(numericCast(file.offsetOfLocalHeader))
         let localFileHeader = try readLocalFileHeader()
         guard localFileHeader.filename == file.filename else { throw ZipArchiveReaderError.invalidFileHeader }
