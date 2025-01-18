@@ -105,7 +105,7 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
         /// Extract ZIP64 extra field
         var uncompressedSize64: Int64 = numericCast(uncompressedSize)
         var compressedSize64: Int64 = numericCast(compressedSize)
-        if let zip64ExtraField = extraFields.first(where: { $0.header == Zip.ExtraFieldHeader.zip64.rawValue }) {
+        if let zip64ExtraField = extraFields.first(where: { $0.header == .zip64 }) {
             var memoryBuffer = MemoryBuffer(zip64ExtraField.data)
             if uncompressedSize == 0xffff_ffff {
                 uncompressedSize64 = try memoryBuffer.readInteger(as: Int64.self)
@@ -153,7 +153,7 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
                 UInt32.self,
                 UInt32.self
             )
-        guard signature == Zip.fileHeaderSignature else { throw ZipArchiveReaderError.invalidFileHeader }
+        guard signature == Zip.fileHeaderSignature else { throw ZipArchiveReaderError.invalidDirectory }
 
         let filename = try storage.readString(length: numericCast(fileNameLength))
         let extraFieldsBuffer = try storage.readBytes(length: numericCast(extraFieldsLength))
@@ -166,7 +166,7 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
         var compressedSize64: Int64 = numericCast(compressedSize)
         var offsetOfLocalHeader64: Int64 = numericCast(offsetOfLocalHeader)
         var diskStart32: UInt32 = numericCast(diskStart)
-        if let zip64ExtraField = extraFields.first(where: { $0.header == Zip.ExtraFieldHeader.zip64.rawValue }) {
+        if let zip64ExtraField = extraFields.first(where: { $0.header == .zip64 }) {
             var memoryBuffer = MemoryBuffer(zip64ExtraField.data)
             if uncompressedSize == 0xffff_ffff {
                 uncompressedSize64 = try memoryBuffer.readInteger(as: Int64.self)
@@ -181,13 +181,13 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
                 diskStart32 = try memoryBuffer.readInteger(as: UInt32.self)
             }
         }
-        guard let compressionMethod = Zip.FileCompressionMethod(rawValue: compression) else { throw ZipArchiveReaderError.invalidFileHeader }
+        guard let compressionMethod = Zip.FileCompressionMethod(rawValue: compression) else { throw ZipArchiveReaderError.invalidDirectory }
         return .init(
             versionNeeded: versionNeeded,
             flags: .init(rawValue: flags),
             compressionMethod: compressionMethod,
-            _fileModificationTime: modTime,
-            _fileModificationDate: modDate,
+            fileModificationTime: modTime,
+            fileModificationDate: modDate,
             crc32: crc32,
             compressedSize: compressedSize64,
             uncompressedSize: uncompressedSize64,
@@ -207,7 +207,7 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
         while extraFieldsBuffer.position < extraFieldsBuffer.length {
             let (header, size) = try extraFieldsBuffer.readIntegers(UInt16.self, UInt16.self)
             let data = try extraFieldsBuffer.read(numericCast(size))
-            extraFields.append(.init(header: header, data: data))
+            extraFields.append(.init(header: .init(rawValue: header), data: data))
         }
         return extraFields
     }

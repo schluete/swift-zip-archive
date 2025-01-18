@@ -1,6 +1,14 @@
 /// Zip file types
 /// Details on these can be found in the PKZIP AppNotes https://support.pkware.com/pkzip/application-note-archives
 public enum Zip {
+    #if os(Linux)
+    static let versionMadeBy: UInt16 = 0x301
+    #elseif os(Windows)
+    static let versionMadeBy: UInt16 = 0x1
+    #else
+    static let versionMadeBy: UInt16 = 0x1301
+    #endif
+
     public struct FileFlags: OptionSet {
         public let rawValue: UInt16
 
@@ -48,30 +56,31 @@ public enum Zip {
 
     public struct FileHeader {
         //let versionMadeBy: UInt16
-        let versionNeeded: UInt16
-        public let flags: FileFlags
-        public let compressionMethod: FileCompressionMethod
-        let _fileModificationTime: UInt16
-        let _fileModificationDate: UInt16
-        let crc32: UInt32
-        let compressedSize: Int64
-        public let uncompressedSize: Int64
-        public let filename: String
-        let extraFields: [ExtraField]
-        public let comment: String
-        let diskStart: UInt32
-        let internalAttribute: UInt16
-        public let externalAttributes: UInt32
+        var versionNeeded: UInt16
+        public var flags: FileFlags
+        public var compressionMethod: FileCompressionMethod
+        var fileModificationTime: UInt16
+        var fileModificationDate: UInt16
+        var crc32: UInt32
+        var compressedSize: Int64
+        public var uncompressedSize: Int64
+        public var filename: String
+        var extraFields: [ExtraField]
+        public var comment: String
+        var diskStart: UInt32
+        var internalAttribute: UInt16
+        public var externalAttributes: UInt32
         var offsetOfLocalHeader: Int64
     }
 
     public struct ExtraField {
-        let header: UInt16
+        let header: ExtraFieldHeader
         let data: ArraySlice<UInt8>
     }
 
-    enum ExtraFieldHeader: UInt16 {
-        case zip64 = 1
+    struct ExtraFieldHeader: RawRepresentable {
+        let rawValue: UInt16
+        static var zip64: Self { .init(rawValue: 1) }
     }
 
     struct Zip64ExtendedInformationExtraField {
@@ -83,16 +92,16 @@ public enum Zip {
 
     struct LocalFileHeader {
         //let versionMadeBy: UInt16
-        let versionNeeded: UInt16
-        let flags: FileFlags
-        let compressionMethod: FileCompressionMethod
-        let fileModificationTime: UInt16
-        let fileModificationDate: UInt16
-        let crc32: UInt32
-        let compressedSize: Int64
-        let uncompressedSize: Int64
-        let filename: String
-        let extraFields: [ExtraField]
+        var versionNeeded: UInt16
+        var flags: FileFlags
+        var compressionMethod: FileCompressionMethod
+        var fileModificationTime: UInt16
+        var fileModificationDate: UInt16
+        var crc32: UInt32
+        var compressedSize: Int64
+        var uncompressedSize: Int64
+        var filename: String
+        var extraFields: [ExtraField]
     }
 
     struct Zip64EndOfCentralDirectory {

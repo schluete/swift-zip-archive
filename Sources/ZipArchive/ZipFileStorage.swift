@@ -73,16 +73,10 @@ extension ZipArchiveReader where Storage == ZipFileStorage {
             .init(filename),
             .readOnly
         )
-        let value: Value
-        do {
+        return try fileDescriptor.closeAfter {
             let zipArchiveReader = try ZipArchiveReader(ZipFileStorage(fileDescriptor))
-            value = try process(zipArchiveReader)
-        } catch {
-            try? fileDescriptor.close()
-            throw error
+            return try process(zipArchiveReader)
         }
-        try fileDescriptor.close()
-        return value
     }
 
 }

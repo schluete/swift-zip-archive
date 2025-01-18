@@ -12,6 +12,12 @@ struct MemoryBuffer<Bytes: RangeReplaceableCollection> where Bytes.Element == UI
     }
 
     @usableFromInline
+    init(size: Int) where Bytes == [UInt8] {
+        self.buffer = .init(repeating: 0, count: size)[...]
+        self.position = self.buffer.startIndex
+    }
+
+    @usableFromInline
     init(_ buffer: Bytes) {
         self.buffer = buffer[...]
         self.position = self.buffer.startIndex
@@ -87,6 +93,25 @@ struct MemoryBuffer<Bytes: RangeReplaceableCollection> where Bytes.Element == UI
     @inlinable
     public mutating func readIntegers<each T: FixedWidthInteger>(_ type: repeat (each T).Type) throws(MemoryBufferError) -> (repeat each T) {
         (repeat try self.readInteger(as: (each T).self))
+    }
+
+    @inlinable
+    public mutating func writeString(_ string: String) {
+        self.write(bytes: string.utf8)
+    }
+
+    @inlinable
+    public mutating func writeInteger<T: FixedWidthInteger>(
+        _ value: T
+    ) {
+        withUnsafeBytes(of: value) { valuePtr in
+            write(bytes: valuePtr)
+        }
+    }
+
+    @inlinable
+    public mutating func writeIntegers<each T: FixedWidthInteger>(_ value: repeat each T) {
+        (repeat self.writeInteger(each value))
     }
 }
 

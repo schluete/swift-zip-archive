@@ -6,6 +6,7 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
     var filesToAdd: [(fileHeader: Zip.FileHeader, bytes: [UInt8])]
     var storage: Storage
     var endOfCentralDirectoryRecord: Zip.EndOfCentralDirectory
+    let directory: [Zip.FileHeader]
 
     public init() where Storage == ZipMemoryStorage<[UInt8]> {
         self.reader = nil
@@ -20,6 +21,11 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
             offsetOfCentralDirectory: 0,
             comment: ""
         )
+        self.directory = []
+    }
+
+    convenience public init<Bytes: RangeReplaceableCollection>(bytes: Bytes) throws where Storage == ZipMemoryStorage<Bytes> {
+        try self.init(storage: .init(bytes))
     }
 
     init(storage: Storage) throws {
@@ -28,6 +34,7 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
         self.filesToAdd = []
         self.storage = storage
         self.endOfCentralDirectoryRecord = reader.endOfCentralDirectoryRecord
+        self.directory = try reader.readDirectory()
     }
 
     public func addFile(filename: String, contents: [UInt8]) throws {
@@ -42,8 +49,8 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
             versionNeeded: 20,
             flags: [],
             compressionMethod: .deflated,
-            _fileModificationTime: 0,
-            _fileModificationDate: 0,
+            fileModificationTime: 0,
+            fileModificationDate: 0,
             crc32: numericCast(crc),
             compressedSize: numericCast(compressedContents.count),
             uncompressedSize: numericCast(contents.count),
@@ -59,7 +66,7 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
         self.filesToAdd.append((fileHeader: fileHeader, bytes: compressedContents))
     }
 
-    public func writeToBuffer() throws -> ArraySlice<UInt8> where Storage == ZipMemoryStorage<[UInt8]> {
+    public func writeToBuffer() throws -> [UInt8].SubSequence where Storage == ZipMemoryStorage<[UInt8]> {
         try write()
         return self.storage.buffer.buffer
     }
@@ -73,33 +80,21 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
         // truncate zip file
         try self.storage.truncate(endOfCentralDirectoryRecord.offsetOfCentralDirectory)
 
+        // write new files
         for i in 0..<filesToAdd.count {
             let header = filesToAdd[i].fileHeader
-            let localFileHeader = Zip.LocalFileHeader(
-                versionNeeded: header.versionNeeded,
-                flags: header.flags,
-                compressionMethod: header.compressionMethod,
-                fileModificationTime: header._fileModificationDate,
-                fileModificationDate: header._fileModificationTime,
-                crc32: header.crc32,
-                compressedSize: header.compressedSize,
-                uncompressedSize: header.uncompressedSize,
-                filename: header.filename,
-                extraFields: header.extraFields
-            )
-
             // Update offset of local header in file header
             filesToAdd[i].fileHeader.offsetOfLocalHeader = try self.storage.seekOffset(0)
-
-            try writeLocalFileHeader(localFileHeader)
+            try writeLocalFileHeader(header)
             try storage.write(bytes: filesToAdd[i].bytes)
         }
         let centralDirectoryOffset = try storage.seekOffset(0)
 
+        // write original directory
         try storage.write(bytes: directory)
+        // write new files to directory
         for file in filesToAdd {
             try writeFileHeader(file.fileHeader)
-            try storage.write(bytes: file.bytes)
         }
         let centralDirectoryEndOffset = try storage.seekOffset(0)
 
@@ -112,17 +107,91 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
     }
 
     func writeFileHeader(_ fileHeader: Zip.FileHeader) throws {
+        var fileHeader = fileHeader
+        let extraFieldsBuffer = getExtraFieldBuffer(&fileHeader)
 
+        try self.storage.writeIntegers(
+            Zip.fileHeaderSignature,
+            Zip.versionMadeBy,
+            fileHeader.versionNeeded,
+            fileHeader.flags.rawValue,
+            fileHeader.compressionMethod.rawValue,
+            fileHeader.fileModificationTime,
+            fileHeader.fileModificationDate,
+            fileHeader.crc32,
+            UInt32(fileHeader.compressedSize),
+            UInt32(fileHeader.uncompressedSize),
+            UInt16(fileHeader.filename.utf8.count),
+            UInt16(extraFieldsBuffer.count),
+            UInt16(fileHeader.comment.utf8.count),
+            UInt16(fileHeader.diskStart),
+            fileHeader.internalAttribute,
+            fileHeader.externalAttributes,
+            UInt32(fileHeader.offsetOfLocalHeader)
+        )
+        try self.storage.writeString(fileHeader.filename)
+        try self.storage.write(bytes: extraFieldsBuffer)
+        try self.storage.writeString(fileHeader.comment)
     }
 
-    func writeLocalFileHeader(_ fileHeader: Zip.LocalFileHeader) throws {
+    func writeLocalFileHeader(_ fileHeader: Zip.FileHeader) throws {
+        var fileHeader = fileHeader
+        let extraFields = getExtraFieldBuffer(&fileHeader)
 
+        try self.storage.writeIntegers(
+            Zip.localFileHeaderSignature,
+            fileHeader.versionNeeded,
+            fileHeader.flags.rawValue,
+            fileHeader.compressionMethod.rawValue,
+            fileHeader.fileModificationTime,
+            fileHeader.fileModificationDate,
+            fileHeader.crc32,
+            UInt32(fileHeader.compressedSize),
+            UInt32(fileHeader.uncompressedSize),
+            UInt16(fileHeader.filename.utf8.count),
+            UInt16(extraFields.count)
+        )
+        try self.storage.writeString(fileHeader.filename)
+        try self.storage.write(bytes: extraFields)
+    }
+
+    func getExtraFieldBuffer(_ fileHeader: inout Zip.FileHeader) -> ArraySlice<UInt8> {
+        let compressedSize32 = fileHeader.compressedSize > 0xffff_ffff ? 0xffff_ffff : numericCast(fileHeader.compressedSize)
+        let uncompressedSize32 = fileHeader.uncompressedSize > 0xffff_ffff ? 0xffff_ffff : numericCast(fileHeader.uncompressedSize)
+        let offsetOfLocalHeader32 = fileHeader.offsetOfLocalHeader > 0xffff_ffff ? 0xffff_ffff : numericCast(fileHeader.offsetOfLocalHeader)
+
+        let includeZip64 = compressedSize32 == 0xffff_ffff || uncompressedSize32 == 0xffff_ffff || offsetOfLocalHeader32 == 0xffff_ffff
+
+        var zip64ExtraFieldSize = includeZip64 ? 4 : 0
+        if compressedSize32 == 0xffff_ffff { zip64ExtraFieldSize += 8 }
+        if uncompressedSize32 == 0xffff_ffff { zip64ExtraFieldSize += 8 }
+        if offsetOfLocalHeader32 == 0xffff_ffff { zip64ExtraFieldSize += 8 }
+        let extraFieldsSize = fileHeader.extraFields.reduce(zip64ExtraFieldSize) { $0 + $1.data.count + 4 }
+
+        var memoryBuffer = MemoryBuffer(size: extraFieldsSize)
+        if includeZip64 {
+            memoryBuffer.writeIntegers(Zip.ExtraFieldHeader.zip64.rawValue, UInt16(zip64ExtraFieldSize - 4))
+            if uncompressedSize32 == 0xffff_ffff {
+                memoryBuffer.writeInteger(fileHeader.uncompressedSize)
+            }
+            if compressedSize32 == 0xffff_ffff {
+                memoryBuffer.writeInteger(fileHeader.compressedSize)
+            }
+            if offsetOfLocalHeader32 == 0xffff_ffff {
+                memoryBuffer.writeInteger(fileHeader.offsetOfLocalHeader)
+            }
+        }
+        for field in fileHeader.extraFields {
+            memoryBuffer.writeIntegers(field.header.rawValue, UInt16(field.data.count))
+            memoryBuffer.write(bytes: field.data)
+        }
+        return memoryBuffer.buffer
     }
 
     func writeZip64EndOfCentralDirectory(_ zip64EndOfCentralDirectory: Zip.Zip64EndOfCentralDirectory) throws {
         try self.storage.writeIntegers(
             Zip.zip64EndOfCentralDirectorySignature,
-            UInt16(0x301),  // version make by (Unix/0.1)
+            Zip.versionMadeBy,
             zip64EndOfCentralDirectory.versionNeeded,  // version needed (zip64 requires v4.5)
             zip64EndOfCentralDirectory.diskNumber,
             zip64EndOfCentralDirectory.diskNumberCentralDirectoryStarts,
