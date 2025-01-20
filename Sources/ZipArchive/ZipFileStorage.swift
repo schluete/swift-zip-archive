@@ -1,6 +1,6 @@
 import SystemPackage
 
-public struct ZipFileStorage: ZipReadableStorage {
+public struct ZipFileStorage: ZipReadableStorage, ZipWriteableStorage {
     @usableFromInline
     let fileDescriptor: FileDescriptor
     @usableFromInline
@@ -65,18 +65,26 @@ public struct ZipFileStorage: ZipReadableStorage {
             throw .internalError
         }
     }
-}
 
-extension ZipArchiveReader where Storage == ZipFileStorage {
-    public static func withFile<Value>(_ filename: String, process: (ZipArchiveReader) throws -> Value) throws -> Value {
-        let fileDescriptor = try FileDescriptor.open(
-            .init(filename),
-            .readOnly
-        )
-        return try fileDescriptor.closeAfter {
-            let zipArchiveReader = try ZipArchiveReader(ZipFileStorage(fileDescriptor))
-            return try process(zipArchiveReader)
+    public func write<Bytes>(bytes: Bytes) throws(ZipFileStorageError) where Bytes: Collection, Bytes.Element == UInt8 {
+        do {
+            guard
+                try bytes.withContiguousStorageIfAvailable({ buffer in
+                    try self.fileDescriptor.write(.init(buffer))
+                }) != nil
+            else {
+                throw ZipFileStorageError.internalError
+            }
+        } catch {
+            throw .internalError
         }
     }
 
+    public func truncate(_ size: Int64) throws(ZipFileStorageError) {
+        do {
+            try self.fileDescriptor.resize(to: size)
+        } catch {
+            throw .internalError
+        }
+    }
 }

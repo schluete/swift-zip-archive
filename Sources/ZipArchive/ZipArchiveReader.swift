@@ -1,4 +1,5 @@
 import CZipZlib
+import SystemPackage
 
 /// Zip file reader type
 public final class ZipArchiveReader<Storage: ZipReadableStorage> {
@@ -25,12 +26,17 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
 
     /// Read directory from zip file into an array
     public func readDirectory() throws -> [Zip.FileHeader] {
-        var directory: [Zip.FileHeader] = []
         try storage.seek(numericCast(endOfCentralDirectoryRecord.offsetOfCentralDirectory))
-        let bytes = try storage.readBytes(length: numericCast(endOfCentralDirectoryRecord.centralDirectorySize))
+        let bytes = try storage.read(numericCast(endOfCentralDirectoryRecord.centralDirectorySize))
         let memoryStorage = ZipMemoryStorage(bytes)
+        return try readDirectory(memoryStorage)
+    }
+
+    /// Read directory from byffer
+    func readDirectory(_ storage: some ZipReadableStorage) throws -> [Zip.FileHeader] {
+        var directory: [Zip.FileHeader] = []
         for _ in 0..<endOfCentralDirectoryRecord.diskEntries {
-            let fileHeader = try self.readFileHeader(from: memoryStorage)
+            let fileHeader = try self.readFileHeader(from: storage)
             directory.append(fileHeader)
         }
         return directory
@@ -342,7 +348,19 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
 
         throw ZipArchiveReaderError.failedToFindCentralDirectory
     }
+}
 
+extension ZipArchiveReader where Storage == ZipFileStorage {
+    public static func withFile<Value>(_ filename: String, process: (ZipArchiveReader) throws -> Value) throws -> Value {
+        let fileDescriptor = try FileDescriptor.open(
+            .init(filename),
+            .readOnly
+        )
+        return try fileDescriptor.closeAfter {
+            let zipArchiveReader = try ZipArchiveReader(ZipFileStorage(fileDescriptor))
+            return try process(zipArchiveReader)
+        }
+    }
 }
 
 public struct ZipArchiveReaderError: Error {

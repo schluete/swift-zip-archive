@@ -54,6 +54,19 @@ extension ZipReadableStorage {
     }
 }
 
+extension ZipReadableStorage {
+    func copy(length: Int64, to storage: some ZipWriteableStorage) throws {
+        var amountToCopy = length
+        // TODO: Optimise this
+        while amountToCopy > 0 {
+            let chunkSize: Int = min(numericCast(amountToCopy), 65536)
+            amountToCopy -= numericCast(chunkSize)
+            let bytes = try self.read(chunkSize)
+            try storage.write(bytes: bytes)
+        }
+    }
+}
+
 public protocol ZipWriteableStorage: ZipReadableStorage {
     func write<Bytes: Collection>(bytes: Bytes) throws(ZipFileStorageError) where Bytes.Element == UInt8
     func truncate(_ size: Int64) throws

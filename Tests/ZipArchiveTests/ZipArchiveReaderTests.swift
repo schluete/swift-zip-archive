@@ -9,11 +9,11 @@ struct ZipArchiveReaderTests {
         let filePath = Bundle.module.path(forResource: "source", ofType: "zip")!
         let fileHandle = FileHandle(forReadingAtPath: filePath)
         let data = try #require(try fileHandle?.readToEnd())
-        let ZipArchiveReader = try ZipArchiveReader(ZipMemoryStorage(data))
-        let ZipArchiveDirectory = try ZipArchiveReader.readDirectory()
-        #expect(ZipArchiveDirectory.count == 9)
-        #expect(ZipArchiveDirectory[0].filename == "Sources/Zip/")
-        #expect(ZipArchiveDirectory[8].filename == "Tests/ZipTests/ZipFileReaderTests.swift")
+        let zipArchiveReader = try ZipArchiveReader(ZipMemoryStorage(data))
+        let zipArchiveDirectory = try zipArchiveReader.readDirectory()
+        #expect(zipArchiveDirectory.count == 9)
+        #expect(zipArchiveDirectory[0].filename == "Sources/Zip/")
+        #expect(zipArchiveDirectory[8].filename == "Tests/ZipTests/ZipFileReaderTests.swift")
     }
 
     @Test
@@ -22,19 +22,22 @@ struct ZipArchiveReaderTests {
         let fileHandle = FileHandle(forReadingAtPath: filePath)
         let data = try #require(try fileHandle?.readToEnd())
         let ZipArchiveReader = try ZipArchiveReader(ZipMemoryStorage(data))
-        let ZipArchiveDirectory = try ZipArchiveReader.readDirectory()
-        print("Loading \(ZipArchiveDirectory[2].filename)")
-        _ = try ZipArchiveReader.readFile(ZipArchiveDirectory[2])
+        let zipArchiveDirectory = try ZipArchiveReader.readDirectory()
+        print("Loading \(zipArchiveDirectory[2].filename)")
+        _ = try ZipArchiveReader.readFile(zipArchiveDirectory[2])
     }
 
     @Test
     func loadZipDirectory() throws {
         let filePath = Bundle.module.path(forResource: "source", ofType: "zip")!
         try ZipArchiveReader.withFile(filePath) { zipArchiveReader in
-            let ZipArchiveDirectory = try zipArchiveReader.readDirectory()
-            #expect(ZipArchiveDirectory.count == 9)
-            #expect(ZipArchiveDirectory[0].filename == "Sources/Zip/")
-            #expect(ZipArchiveDirectory[8].filename == "Tests/ZipTests/ZipFileReaderTests.swift")
+            let zipArchiveDirectory = try zipArchiveReader.readDirectory()
+            for file in zipArchiveDirectory {
+                print("\(file.filename) \(file.externalAttributes)")
+            }
+            #expect(zipArchiveDirectory.count == 9)
+            #expect(zipArchiveDirectory[0].filename == "Sources/Zip/")
+            #expect(zipArchiveDirectory[8].filename == "Tests/ZipTests/ZipFileReaderTests.swift")
         }
     }
 
