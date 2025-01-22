@@ -75,6 +75,16 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
     }
 
     public func addFile(filename: String, contents: [UInt8]) throws {
+        let filePath = FilePath(filename)
+        let existingFileHeader =
+            self.directory.first(where: { $0.filename == filePath.string })
+            ?? self.newDirectoryEntries.first(where: { $0.filename == filePath.string })
+        if let existingFileHeader {
+            guard existingFileHeader.uncompressedSize == 0 else {
+                throw ZipArchiveWriterError.fileAlreadyExists
+            }
+        }
+        try addFolder(filePath.removingRoot().removingLastComponent())
         // Calculate CRC32
         let crc = contents.withUnsafeBytes { bytes in
             var crc = crc32(0xffff_ffff, nil, 0)
@@ -104,6 +114,45 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
         try storage.write(bytes: compressedContents)
 
         self.newDirectoryEntries.append(fileHeader)
+    }
+
+    func addFolder(_ filePath: FilePath) throws {
+        #if os(Windows)
+        let separator = "\\"
+        #else
+        let separator = "/"
+        #endif
+        let folderName = "\(filePath.string)\(separator)"
+        guard !filePath.isEmpty else { return }
+        let existingFileHeader =
+            self.directory.first(where: { $0.filename == folderName })
+            ?? self.newDirectoryEntries.first(where: { $0.filename == folderName })
+        if let existingFileHeader {
+            guard existingFileHeader.uncompressedSize == 0 else {
+                throw ZipArchiveWriterError.fileAlreadyExists
+            }
+            return
+        }
+        let fileHeader = Zip.FileHeader(
+            versionNeeded: 10,
+            flags: [],
+            compressionMethod: .noCompression,
+            fileModificationTime: 0,
+            fileModificationDate: 0,
+            crc32: 0,
+            compressedSize: 0,
+            uncompressedSize: 0,
+            filename: folderName,
+            extraFields: [],
+            comment: "",
+            diskStart: 0,
+            internalAttribute: 0,
+            externalAttributes: 0x41ED_0010,  // for file (directory is 0x41ED0010)
+            offsetOfLocalHeader: 0
+        )
+
+        self.newDirectoryEntries.append(fileHeader)
+
     }
 
     func writeDirectory() throws {
@@ -309,4 +358,13 @@ extension ZipArchiveWriter {
             try writer.writeDirectory()
         }
     }
+}
+
+public struct ZipArchiveWriterError: Error {
+    internal enum Value {
+        case fileAlreadyExists
+    }
+    internal let value: Value
+
+    public static var fileAlreadyExists: Self { .init(value: .fileAlreadyExists) }
 }

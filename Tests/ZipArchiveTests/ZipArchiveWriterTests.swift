@@ -48,6 +48,24 @@ struct ZipArchiveWriterTests {
     }
 
     @Test
+    func testAddingFileWithDirectory() throws {
+        let writer = ZipArchiveWriter()
+        try writer.addFile(filename: "Tests/Hello.txt", contents: .init("Hello, world!".utf8))
+        let buffer = try writer.finalizeBuffer()
+        let writer2 = try ZipArchiveWriter(bytes: buffer)
+
+        #expect(writer2.directory.count == 2)
+        #expect(writer2.directory.first?.filename == "Tests/")
+
+        try writer2.addFile(filename: "Tests/Hello2.txt", contents: .init("Hello, world!".utf8))
+        let buffer2 = try writer2.finalizeBuffer()
+        let zipArchiveReader = try ZipArchiveReader(bytes: buffer2)
+        let directory = try zipArchiveReader.readDirectory()
+        #expect(directory.count == 3)
+        #expect(directory.map(\.filename) == ["Tests/", "Tests/Hello.txt", "Tests/Hello2.txt"])
+    }
+
+    @Test
     func testAddingFileToEmptyFileZipArchive() throws {
         try ZipArchiveWriter.withFile("test.zip", options: .create) { writer in
             try writer.addFile(filename: "Hello.txt", contents: .init("Hello, world!".utf8))
