@@ -1,6 +1,12 @@
 import CZipZlib
 import SystemPackage
 
+#if canImport(FoundationEssentials)
+import FoundationEssentials
+#else
+import Foundation
+#endif
+
 /// Zip archive writer type
 public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
     var storage: Storage
@@ -97,8 +103,7 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
             versionNeeded: 20,
             flags: [],
             compressionMethod: .deflated,
-            fileModificationTime: 0,
-            fileModificationDate: 0,
+            fileModification: .now,
             crc32: numericCast(crc),
             compressedSize: numericCast(compressedContents.count),
             uncompressedSize: numericCast(contents.count),
@@ -137,8 +142,7 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
             versionNeeded: 10,
             flags: [],
             compressionMethod: .noCompression,
-            fileModificationTime: 0,
-            fileModificationDate: 0,
+            fileModification: .now,
             crc32: 0,
             compressedSize: 0,
             uncompressedSize: 0,
@@ -178,16 +182,16 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
 
     func writeFileHeader(_ fileHeader: Zip.FileHeader) throws {
         var fileHeader = fileHeader
-        let extraFieldsBuffer = getExtraFieldBuffer(&fileHeader)
-
+        let extraFieldsBuffer = getExtraFieldBuffer(&fileHeader, localFileHeader: false)
+        let (fileModificationTime, fileModificationDate) = fileHeader.fileModification.msdosDate()
         try self.storage.writeIntegers(
             Zip.fileHeaderSignature,
             Zip.versionMadeBy,
             fileHeader.versionNeeded,
             fileHeader.flags.rawValue,
             fileHeader.compressionMethod.rawValue,
-            fileHeader.fileModificationTime,
-            fileHeader.fileModificationDate,
+            fileModificationTime,
+            fileModificationDate,
             fileHeader.crc32,
             UInt32(fileHeader.compressedSize),
             UInt32(fileHeader.uncompressedSize),
@@ -206,15 +210,16 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
 
     func writeLocalFileHeader(_ fileHeader: Zip.FileHeader) throws {
         var fileHeader = fileHeader
-        let extraFields = getExtraFieldBuffer(&fileHeader)
+        let extraFields = getExtraFieldBuffer(&fileHeader, localFileHeader: true)
 
+        let (fileModificationTime, fileModificationDate) = fileHeader.fileModification.msdosDate()
         try self.storage.writeIntegers(
             Zip.localFileHeaderSignature,
             fileHeader.versionNeeded,
             fileHeader.flags.rawValue,
             fileHeader.compressionMethod.rawValue,
-            fileHeader.fileModificationTime,
-            fileHeader.fileModificationDate,
+            fileModificationTime,
+            fileModificationDate,
             fileHeader.crc32,
             UInt32(fileHeader.compressedSize),
             UInt32(fileHeader.uncompressedSize),
@@ -225,20 +230,43 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
         try self.storage.write(bytes: extraFields)
     }
 
-    func getExtraFieldBuffer(_ fileHeader: inout Zip.FileHeader) -> ArraySlice<UInt8> {
+    func getExtraFieldBuffer(_ fileHeader: inout Zip.FileHeader, localFileHeader: Bool) -> ArraySlice<UInt8> {
+        // Extended timestamp extra field
+        let extendedTimestampExtraFieldSize = localFileHeader ? 4 + 9 : 4 + 5
+        // Zip64 extra field
         let compressedSize32 = fileHeader.compressedSize > 0xffff_ffff ? 0xffff_ffff : numericCast(fileHeader.compressedSize)
         let uncompressedSize32 = fileHeader.uncompressedSize > 0xffff_ffff ? 0xffff_ffff : numericCast(fileHeader.uncompressedSize)
         let offsetOfLocalHeader32 = fileHeader.offsetOfLocalHeader > 0xffff_ffff ? 0xffff_ffff : numericCast(fileHeader.offsetOfLocalHeader)
 
         let includeZip64 = compressedSize32 == 0xffff_ffff || uncompressedSize32 == 0xffff_ffff || offsetOfLocalHeader32 == 0xffff_ffff
 
-        var zip64ExtraFieldSize = includeZip64 ? 4 : 0
-        if compressedSize32 == 0xffff_ffff { zip64ExtraFieldSize += 8 }
-        if uncompressedSize32 == 0xffff_ffff { zip64ExtraFieldSize += 8 }
-        if offsetOfLocalHeader32 == 0xffff_ffff { zip64ExtraFieldSize += 8 }
-        let extraFieldsSize = fileHeader.extraFields.reduce(zip64ExtraFieldSize) { $0 + $1.data.count + 4 }
+        var zip64ExtraFieldSize: Int
+        if includeZip64 {
+            zip64ExtraFieldSize = 4
+            if compressedSize32 == 0xffff_ffff { zip64ExtraFieldSize += 8 }
+            if uncompressedSize32 == 0xffff_ffff { zip64ExtraFieldSize += 8 }
+            if offsetOfLocalHeader32 == 0xffff_ffff { zip64ExtraFieldSize += 8 }
+        } else {
+            zip64ExtraFieldSize = 0
+        }
+        // extra field size is timestamp + zip64 sizes + size of all the other extra fields
+        let extraFieldsSize = fileHeader.extraFields.reduce(
+            extendedTimestampExtraFieldSize + zip64ExtraFieldSize
+        ) { $0 + $1.data.count + 4 }
 
         var memoryBuffer = MemoryBuffer(size: extraFieldsSize)
+        // write extended timestamp
+        memoryBuffer.writeIntegers(
+            Zip.ExtraFieldHeader.extendedTimestamp.rawValue,
+            UInt16(extendedTimestampExtraFieldSize - 4),
+            UInt8(3),
+            Int32(fileHeader.fileModification.timeIntervalSince1970)
+        )
+        // local file header also includes
+        if localFileHeader {
+            memoryBuffer.writeInteger(Int32(fileHeader.fileModification.timeIntervalSince1970))
+        }
+        // write zip64
         if includeZip64 {
             memoryBuffer.writeIntegers(Zip.ExtraFieldHeader.zip64.rawValue, UInt16(zip64ExtraFieldSize - 4))
             if uncompressedSize32 == 0xffff_ffff {

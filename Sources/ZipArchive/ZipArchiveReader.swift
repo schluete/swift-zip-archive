@@ -1,6 +1,12 @@
 import CZipZlib
 import SystemPackage
 
+#if canImport(FoundationEssentials)
+import FoundationEssentials
+#else
+import Foundation
+#endif
+
 /// Zip file reader type
 public final class ZipArchiveReader<Storage: ZipReadableStorage> {
     let storage: Storage
@@ -111,13 +117,26 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
         /// Extract ZIP64 extra field
         var uncompressedSize64: Int64 = numericCast(uncompressedSize)
         var compressedSize64: Int64 = numericCast(compressedSize)
-        if let zip64ExtraField = extraFields.first(where: { $0.header == .zip64 }) {
-            var memoryBuffer = MemoryBuffer(zip64ExtraField.data)
-            if uncompressedSize == 0xffff_ffff {
-                uncompressedSize64 = try memoryBuffer.readInteger(as: Int64.self)
-            }
-            if compressedSize == 0xffff_ffff {
-                compressedSize64 = try memoryBuffer.readInteger(as: Int64.self)
+        var fileModification = Date(msdosTime: modTime, msdosDate: modDate)
+        for extraField in extraFields {
+            switch extraField.header {
+            case .zip64:
+                var memoryBuffer = MemoryBuffer(extraField.data)
+                if uncompressedSize == 0xffff_ffff {
+                    uncompressedSize64 = try memoryBuffer.readInteger(as: Int64.self)
+                }
+                if compressedSize == 0xffff_ffff {
+                    compressedSize64 = try memoryBuffer.readInteger(as: Int64.self)
+                }
+
+            case .extendedTimestamp:
+                var memoryBuffer = MemoryBuffer(extraField.data)
+                try memoryBuffer.seekOffset(1)
+                let modifiedSince1970 = try memoryBuffer.readInteger(as: Int32.self)
+                fileModification = Date(timeIntervalSince1970: Double(modifiedSince1970))
+
+            default:
+                break
             }
         }
         guard let compressionMethod = Zip.FileCompressionMethod(rawValue: compression) else { throw ZipArchiveReaderError.invalidFileHeader }
@@ -125,8 +144,7 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
             versionNeeded: versionNeeded,
             flags: .init(rawValue: flags),
             compressionMethod: compressionMethod,
-            fileModificationTime: modTime,
-            fileModificationDate: modDate,
+            fileModification: fileModification,
             crc32: crc32,
             compressedSize: compressedSize64,
             uncompressedSize: uncompressedSize64,
@@ -172,19 +190,33 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
         var compressedSize64: Int64 = numericCast(compressedSize)
         var offsetOfLocalHeader64: Int64 = numericCast(offsetOfLocalHeader)
         var diskStart32: UInt32 = numericCast(diskStart)
-        if let zip64ExtraField = extraFields.first(where: { $0.header == .zip64 }) {
-            var memoryBuffer = MemoryBuffer(zip64ExtraField.data)
-            if uncompressedSize == 0xffff_ffff {
-                uncompressedSize64 = try memoryBuffer.readInteger(as: Int64.self)
-            }
-            if compressedSize == 0xffff_ffff {
-                compressedSize64 = try memoryBuffer.readInteger(as: Int64.self)
-            }
-            if offsetOfLocalHeader == 0xffff_ffff {
-                offsetOfLocalHeader64 = try memoryBuffer.readInteger(as: Int64.self)
-            }
-            if diskStart == 0xffff {
-                diskStart32 = try memoryBuffer.readInteger(as: UInt32.self)
+        var fileModification = Date(msdosTime: modTime, msdosDate: modDate)
+        for extraField in extraFields {
+            switch extraField.header {
+            case .zip64:
+                var memoryBuffer = MemoryBuffer(extraField.data)
+                if uncompressedSize == 0xffff_ffff {
+                    uncompressedSize64 = try memoryBuffer.readInteger(as: Int64.self)
+                }
+                if compressedSize == 0xffff_ffff {
+                    compressedSize64 = try memoryBuffer.readInteger(as: Int64.self)
+                }
+                if offsetOfLocalHeader == 0xffff_ffff {
+                    offsetOfLocalHeader64 = try memoryBuffer.readInteger(as: Int64.self)
+                }
+                if diskStart == 0xffff {
+                    diskStart32 = try memoryBuffer.readInteger(as: UInt32.self)
+                }
+
+            case .extendedTimestamp:
+                var memoryBuffer = MemoryBuffer(extraField.data)
+                try memoryBuffer.seekOffset(1)
+                let modifiedSince1970 = try memoryBuffer.readInteger(as: Int32.self)
+                fileModification = Date(timeIntervalSince1970: Double(modifiedSince1970))
+
+            default:
+                // ignore extra field
+                break
             }
         }
         guard let compressionMethod = Zip.FileCompressionMethod(rawValue: compression) else { throw ZipArchiveReaderError.invalidDirectory }
@@ -192,8 +224,7 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
             versionNeeded: versionNeeded,
             flags: .init(rawValue: flags),
             compressionMethod: compressionMethod,
-            fileModificationTime: modTime,
-            fileModificationDate: modDate,
+            fileModification: fileModification,
             crc32: crc32,
             compressedSize: compressedSize64,
             uncompressedSize: uncompressedSize64,

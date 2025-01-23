@@ -1,3 +1,9 @@
+#if canImport(FoundationEssentials)
+import FoundationEssentials
+#else
+import Foundation
+#endif
+
 /// Zip file types
 /// Details on these can be found in the PKZIP AppNotes https://support.pkware.com/pkzip/application-note-archives
 public enum Zip {
@@ -59,8 +65,7 @@ public enum Zip {
         var versionNeeded: UInt16
         public var flags: FileFlags
         public var compressionMethod: FileCompressionMethod
-        var fileModificationTime: UInt16
-        var fileModificationDate: UInt16
+        var fileModification: Date
         var crc32: UInt32
         var compressedSize: Int64
         public var uncompressedSize: Int64
@@ -78,9 +83,10 @@ public enum Zip {
         let data: ArraySlice<UInt8>
     }
 
-    struct ExtraFieldHeader: RawRepresentable {
+    struct ExtraFieldHeader: RawRepresentable, Equatable {
         let rawValue: UInt16
         static var zip64: Self { .init(rawValue: 1) }
+        static var extendedTimestamp: Self { .init(rawValue: 0x5455) }
     }
 
     struct Zip64ExtendedInformationExtraField {
@@ -95,8 +101,7 @@ public enum Zip {
         var versionNeeded: UInt16
         var flags: FileFlags
         var compressionMethod: FileCompressionMethod
-        var fileModificationTime: UInt16
-        var fileModificationDate: UInt16
+        var fileModification: Date
         var crc32: UInt32
         var compressedSize: Int64
         var uncompressedSize: Int64

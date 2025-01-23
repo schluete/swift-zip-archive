@@ -4,6 +4,14 @@ import Testing
 @testable import ZipArchive
 
 struct ZipArchiveReaderTests {
+    @Test func testMSDOSDateAndBack() async throws {
+        let msdosDate = 3 | (6 << 5) | (24 << 9)
+        let msdosTime = 21 | (45 << 5) | (19 << 11)
+        let date = Date(msdosTime: UInt16(msdosTime), msdosDate: UInt16(msdosDate))
+        let (msdosTime2, msdosDate2) = date.msdosDate()
+        #expect(msdosTime == msdosTime2)
+        #expect(msdosDate == msdosDate2)
+    }
     @Test
     func loadZipDirectoryFromMemory() throws {
         let filePath = Bundle.module.path(forResource: "source", ofType: "zip")!
@@ -23,7 +31,6 @@ struct ZipArchiveReaderTests {
         let data = try #require(try fileHandle?.readToEnd())
         let ZipArchiveReader = try ZipArchiveReader(ZipMemoryStorage(data))
         let zipArchiveDirectory = try ZipArchiveReader.readDirectory()
-        print("Loading \(zipArchiveDirectory[2].filename)")
         _ = try ZipArchiveReader.readFile(zipArchiveDirectory[2])
     }
 
@@ -32,9 +39,6 @@ struct ZipArchiveReaderTests {
         let filePath = Bundle.module.path(forResource: "source", ofType: "zip")!
         try ZipArchiveReader.withFile(filePath) { zipArchiveReader in
             let zipArchiveDirectory = try zipArchiveReader.readDirectory()
-            for file in zipArchiveDirectory {
-                print("\(file.filename) \(file.externalAttributes)")
-            }
             #expect(zipArchiveDirectory.count == 9)
             #expect(zipArchiveDirectory[0].filename == "Sources/Zip/")
             #expect(zipArchiveDirectory[8].filename == "Tests/ZipTests/ZipFileReaderTests.swift")
