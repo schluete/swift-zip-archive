@@ -372,7 +372,7 @@ extension ZipArchiveWriter {
             options: options.contains(.create) ? .create : [],
             permissions: options.contains(.create) ? [.ownerReadWrite, .groupRead, .otherRead] : nil
         )
-        return try fileDescriptor.closeAfter {
+        return try await fileDescriptor.closeAfter {
             let writer = try ZipArchiveWriter<ZipFileStorage>(
                 ZipFileStorage(fileDescriptor),
                 appending: !options.contains(.create)

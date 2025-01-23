@@ -1,3 +1,4 @@
+import SystemPackage
 import Testing
 
 @testable import ZipArchive
@@ -67,10 +68,14 @@ struct ZipArchiveWriterTests {
 
     @Test
     func testAddingFileToEmptyFileZipArchive() throws {
-        try ZipArchiveWriter.withFile("test.zip", options: .create) { writer in
+        let filename = "testAddingFileToEmptyFileZipArchive.zip"
+        defer {
+            FileDescriptor.remove(.init(filename))
+        }
+        try ZipArchiveWriter.withFile(filename, options: .create) { writer in
             try writer.addFile(filename: "Hello.txt", contents: .init("Hello, world!".utf8))
         }
-        try ZipArchiveReader.withFile("test.zip") { reader in
+        try ZipArchiveReader.withFile(filename) { reader in
             let directory = try reader.readDirectory()
             #expect(directory.count == 1)
             #expect(directory.first?.filename == "Hello.txt")
@@ -82,13 +87,17 @@ struct ZipArchiveWriterTests {
 
     @Test
     func testAddingFileToNonEmptyFileZipArchive() throws {
-        try ZipArchiveWriter.withFile("test2.zip", options: .create) { writer in
+        let filename = "testAddingFileToNonEmptyFileZipArchive.zip"
+        defer {
+            FileDescriptor.remove(.init(filename))
+        }
+        try ZipArchiveWriter.withFile(filename, options: .create) { writer in
             try writer.addFile(filename: "Hello.txt", contents: .init("Hello, world!".utf8))
         }
-        try ZipArchiveWriter.withFile("test2.zip") { writer in
+        try ZipArchiveWriter.withFile(filename) { writer in
             try writer.addFile(filename: "Goodbye.txt", contents: .init("Goodbye, world!".utf8))
         }
-        try ZipArchiveReader.withFile("test2.zip") { reader in
+        try ZipArchiveReader.withFile(filename) { reader in
             let directory = try reader.readDirectory()
             #expect(directory.count == 2)
             #expect(directory.first?.filename == "Hello.txt")

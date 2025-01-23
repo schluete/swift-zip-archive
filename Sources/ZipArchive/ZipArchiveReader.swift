@@ -361,7 +361,7 @@ extension ZipArchiveReader where Storage == ZipFileStorage {
             return try process(zipArchiveReader)
         }
     }
-    public static func withFile<Value>(
+    public static func withFile<Value: Sendable>(
         _ filename: String,
         isolation: isolated (any Actor)? = #isolation,
         process: (ZipArchiveReader) async throws -> Value
@@ -370,7 +370,7 @@ extension ZipArchiveReader where Storage == ZipFileStorage {
             .init(filename),
             .readOnly
         )
-        return try fileDescriptor.closeAfter {
+        return try await fileDescriptor.closeAfter {
             let zipArchiveReader = try ZipArchiveReader(ZipFileStorage(fileDescriptor))
             return try await process(zipArchiveReader)
         }
