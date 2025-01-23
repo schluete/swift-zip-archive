@@ -358,6 +358,29 @@ extension ZipArchiveWriter {
             try writer.writeDirectory()
         }
     }
+
+    public static func withFile(
+        _ filename: String,
+        options: FileOptions = [],
+        isolation: isolated (any Actor)? = #isolation,
+        process: (ZipArchiveWriter) async throws -> Void
+    ) async throws
+    where Storage == ZipFileStorage {
+        let fileDescriptor = try FileDescriptor.open(
+            .init(filename),
+            .readWrite,
+            options: options.contains(.create) ? .create : [],
+            permissions: options.contains(.create) ? [.ownerReadWrite, .groupRead, .otherRead] : nil
+        )
+        return try fileDescriptor.closeAfter {
+            let writer = try ZipArchiveWriter<ZipFileStorage>(
+                ZipFileStorage(fileDescriptor),
+                appending: !options.contains(.create)
+            )
+            try await process(writer)
+            try writer.writeDirectory()
+        }
+    }
 }
 
 public struct ZipArchiveWriterError: Error {

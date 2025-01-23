@@ -361,6 +361,20 @@ extension ZipArchiveReader where Storage == ZipFileStorage {
             return try process(zipArchiveReader)
         }
     }
+    public static func withFile<Value>(
+        _ filename: String,
+        isolation: isolated (any Actor)? = #isolation,
+        process: (ZipArchiveReader) async throws -> Value
+    ) async throws -> Value {
+        let fileDescriptor = try FileDescriptor.open(
+            .init(filename),
+            .readOnly
+        )
+        return try fileDescriptor.closeAfter {
+            let zipArchiveReader = try ZipArchiveReader(ZipFileStorage(fileDescriptor))
+            return try await process(zipArchiveReader)
+        }
+    }
 }
 
 public struct ZipArchiveReaderError: Error {
