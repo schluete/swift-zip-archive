@@ -7,13 +7,7 @@ import Foundation
 /// Zip file types
 /// Details on these can be found in the PKZIP AppNotes https://support.pkware.com/pkzip/application-note-archives
 public enum Zip {
-    #if os(Linux)
-    static let versionMadeBy: UInt16 = 0x301
-    #elseif os(Windows)
-    static let versionMadeBy: UInt16 = 0x1
-    #else
-    static let versionMadeBy: UInt16 = 0x1301
-    #endif
+    static let versionMadeBy: UInt16 = 0x31e  // (Unix)
 
     public struct FileFlags: OptionSet {
         public let rawValue: UInt16

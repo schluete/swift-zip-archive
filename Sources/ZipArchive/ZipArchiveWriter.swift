@@ -112,7 +112,7 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
             comment: "",
             diskStart: 0,
             internalAttribute: 0,
-            externalAttributes: 0x8140_0000,  // for file (directory is 0x41ED0010)
+            externalAttributes: 0x8000_0000 | (0o644 << 16),  // regular file | permissions 644
             offsetOfLocalHeader: currentOffest
         )
         try writeLocalFileHeader(fileHeader)
@@ -151,7 +151,7 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
             comment: "",
             diskStart: 0,
             internalAttribute: 0,
-            externalAttributes: 0x41ED_0010,  // for file (directory is 0x41ED0010)
+            externalAttributes: 0x4000_0000 | (0o755 << 16) | 0x10,  // directory | permissions 755 | MS-DOS directory flag
             offsetOfLocalHeader: 0
         )
         try writeLocalFileHeader(fileHeader)
