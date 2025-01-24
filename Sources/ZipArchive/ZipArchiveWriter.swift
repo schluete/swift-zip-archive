@@ -154,6 +154,7 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
             externalAttributes: 0x41ED_0010,  // for file (directory is 0x41ED0010)
             offsetOfLocalHeader: 0
         )
+        try writeLocalFileHeader(fileHeader)
 
         self.newDirectoryEntries.append(fileHeader)
 
