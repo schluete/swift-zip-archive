@@ -76,15 +76,17 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
             throw ZipArchiveReaderError.unsupportedCompressionMethod
         }
         var encryptionKeys: [UInt8]?
+        var fileSize = localFileHeader.compressedSize
         // if encrypted read encryption header
         if localFileHeader.flags.contains(.encrypted) {
             encryptionKeys = try self.storage.readBytes(length: 12)
+            fileSize -= 12
         } else {
             encryptionKeys = nil
         }
 
         // Read bytes and uncompress
-        var fileBytes = try self.storage.readBytes(length: numericCast(localFileHeader.compressedSize))
+        var fileBytes = try self.storage.readBytes(length: numericCast(fileSize))
 
         // if we have a password and encryption keys
         if let password, var encryptionKeys {

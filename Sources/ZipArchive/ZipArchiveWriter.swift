@@ -99,9 +99,11 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
 
         var flags: Zip.FileFlags = []
         var cryptKey: CryptKey? = nil
+        var fileSize = Int64(compressedContents.count)
         if let password {
             flags.insert(.encrypted)
             cryptKey = CryptKey(password: password)
+            fileSize += 12
         }
         let fileHeader = Zip.FileHeader(
             versionNeeded: 20,
@@ -109,7 +111,7 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
             compressionMethod: .deflated,
             fileModification: .now,
             crc32: crc,
-            compressedSize: numericCast(compressedContents.count),
+            compressedSize: fileSize,
             uncompressedSize: numericCast(contents.count),
             filename: filename,
             extraFields: [],
