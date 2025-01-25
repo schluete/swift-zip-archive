@@ -46,6 +46,20 @@ struct ZipArchiveReaderTests {
     }
 
     @Test
+    func parseZipDirectory() throws {
+        let filePath = Bundle.module.path(forResource: "source", ofType: "zip")!
+        try ZipArchiveReader.withFile(filePath) { zipArchiveReader in
+            var fileHeader: Zip.FileHeader?
+            try zipArchiveReader.parseDirectory { file in
+                if file.filename == "Tests/ZipTests/ZipFileReaderTests.swift" {
+                    fileHeader = file
+                }
+            }
+            #expect(fileHeader != nil)
+        }
+    }
+
+    @Test
     func loadZipArchive() throws {
         let filePath = Bundle.module.path(forResource: "source", ofType: "zip")!
         try ZipArchiveReader.withFile(filePath) { zipArchiveReader in

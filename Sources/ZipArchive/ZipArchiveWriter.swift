@@ -93,7 +93,7 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
         return self.storage.buffer.buffer
     }
 
-    ///  Add file to zip archive
+    ///  Write file to zip archive
     ///
     /// If any of the files containing folders don't exist in the zip directory they will
     /// also be added.
@@ -101,7 +101,7 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
     ///   - filename: Filename of file
     ///   - contents: Contents of file
     ///   - password: Password to encrypt file with
-    public func addFile(filename: String, contents: [UInt8], password: String? = nil) throws {
+    public func writeFile(filename: String, contents: [UInt8], password: String? = nil) throws {
         let filePath = FilePath(filename)
         let existingFileHeader =
             self.directory.first(where: { $0.filename == filePath.string })
@@ -460,8 +460,7 @@ extension ZipArchiveWriter {
         options: FileOptions = [],
         isolation: isolated (any Actor)? = #isolation,
         process: (ZipArchiveWriter) async throws -> Void
-    ) async throws
-    where Storage == ZipFileStorage {
+    ) async throws where Storage == ZipFileStorage {
         let fileDescriptor = try FileDescriptor.open(
             .init(filename),
             .readWrite,
