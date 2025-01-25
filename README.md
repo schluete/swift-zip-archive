@@ -64,5 +64,6 @@ ZipArchive currently supports
 - Deflate decompression
 - Zip64
 - CRC32 checks
+- Traditional PKWARE Decryption/Encryption
  
 

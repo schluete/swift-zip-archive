@@ -15,6 +15,7 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
     let directoryBuffer: [UInt8]?
     var newDirectoryEntries: [Zip.FileHeader]
 
+    /// Initialize archive writer with an empty buffer
     public init() where Storage == ZipMemoryStorage<[UInt8]> {
         self.newDirectoryEntries = []
         self.storage = .init()
@@ -31,10 +32,14 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
         self.directoryBuffer = nil
     }
 
-    convenience public init(bytes: [UInt8]) throws where Storage == ZipMemoryStorage<[UInt8]> {
-        try self.init(.init(bytes))
+    ///  Initialize archive writer with zip archive
+    /// - Parameter buffer: Buffer containing zip archive
+    convenience public init(buffer: [UInt8]) throws where Storage == ZipMemoryStorage<[UInt8]> {
+        try self.init(.init(buffer))
     }
 
+    ///  Initialize archive writer with zip archive
+    /// - Parameter buffer: Buffer containing zip archive
     convenience public init(bytes: ArraySlice<UInt8>) throws where Storage == ZipMemoryStorage<ArraySlice<UInt8>> {
         try self.init(.init(bytes))
     }
@@ -70,16 +75,32 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
         }
     }
 
+    /// Finish writing zip archive to buffer and return buffer
+    ///
+    /// Writes directory and end of directory sections
+    /// - Returns: Buffer containing finalized zip archive
     public func finalizeBuffer() throws -> Storage.Buffer where Storage: ZipMemoryStorage<[UInt8]> {
         try writeDirectory()
         return self.storage.buffer.buffer
     }
 
+    /// Finish writing zip archive to buffer and return buffer
+    ///
+    /// Writes directory and end of directory sections
+    /// - Returns: Buffer containing finalized zip archive
     public func finalizeBuffer() throws -> Storage.Buffer where Storage: ZipMemoryStorage<ArraySlice<UInt8>> {
         try writeDirectory()
         return self.storage.buffer.buffer
     }
 
+    ///  Add file to zip archive
+    ///
+    /// If any of the files containing folders don't exist in the zip directory they will
+    /// also be added.
+    /// - Parameters:
+    ///   - filename: Filename of file
+    ///   - contents: Contents of file
+    ///   - password: Password to encrypt file with
     public func addFile(filename: String, contents: [UInt8], password: String? = nil) throws {
         let filePath = FilePath(filename)
         let existingFileHeader =
@@ -379,6 +400,7 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
 }
 
 extension ZipArchiveWriter {
+    /// Options when writing zip archive to file
     public struct FileOptions: OptionSet {
         public let rawValue: Int
 
@@ -386,10 +408,27 @@ extension ZipArchiveWriter {
             self.rawValue = rawValue
         }
 
+        /// Create new zip archive
         public static var create: Self { .init(rawValue: (1 << 0)) }
     }
-    public static func withFile(_ filename: String, options: FileOptions = [], process: (ZipArchiveWriter) throws -> Void) throws
-    where Storage == ZipFileStorage {
+
+    /// Use ZipArchiveWriter to write to a file
+    ///
+    /// Opens or creates new file depending on `.create` option. If opening file then read
+    /// as zip archive. Run supplied closure and then write zip directory and end of directory
+    /// sections and close the file.
+    ///
+    /// - Parameters:
+    ///   - filename: Filename of file
+    ///   - options: Options when opening file
+    ///   - process: Function to call with opened zip archive
+    public static func withFile(
+        _ filename: String,
+        options: FileOptions = [],
+        process: (
+            ZipArchiveWriter
+        ) throws -> Void
+    ) throws where Storage == ZipFileStorage {
         let fileDescriptor = try FileDescriptor.open(
             .init(filename),
             .readWrite,
@@ -406,6 +445,16 @@ extension ZipArchiveWriter {
         }
     }
 
+    /// Use ZipArchiveWriter to write to a file
+    ///
+    /// Opens or creates new file depending on `.create` option. If opening file then read
+    /// as zip archive. Run supplied closure and then write zip directory and end of directory
+    /// sections and close the file.
+    ///
+    /// - Parameters:
+    ///   - filename: Filename of file
+    ///   - options: Options when opening file
+    ///   - process: Function to call with opened zip archive
     public static func withFile(
         _ filename: String,
         options: FileOptions = [],
@@ -430,11 +479,13 @@ extension ZipArchiveWriter {
     }
 }
 
+/// Errors thrown when writing zip archives
 public struct ZipArchiveWriterError: Error {
     internal enum Value {
         case fileAlreadyExists
     }
     internal let value: Value
 
+    /// File being added to zip archive already exists
     public static var fileAlreadyExists: Self { .init(value: .fileAlreadyExists) }
 }

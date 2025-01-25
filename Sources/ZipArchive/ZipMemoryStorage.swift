@@ -1,3 +1,4 @@
+/// Storage in a memory buffer
 public final class ZipMemoryStorage<Bytes: RangeReplaceableCollection>: ZipReadableStorage, ZipWriteableStorage
 where Bytes.Element == UInt8, Bytes.Index == Int {
     @usableFromInline
@@ -14,7 +15,7 @@ where Bytes.Element == UInt8, Bytes.Index == Int {
     }
 
     @inlinable
-    public func read(_ count: Int) throws(ZipFileStorageError) -> Bytes.SubSequence {
+    public func read(_ count: Int) throws(ZipStorageError) -> Bytes.SubSequence {
         do {
             return try self.buffer.read(count)
         } catch {
@@ -28,7 +29,7 @@ where Bytes.Element == UInt8, Bytes.Index == Int {
     }
 
     @inlinable
-    public func truncate(_ size: Int64) throws(ZipFileStorageError) {
+    public func truncate(_ size: Int64) throws(ZipStorageError) {
         do {
             try self.buffer.truncate(size)
         } catch {
@@ -38,7 +39,7 @@ where Bytes.Element == UInt8, Bytes.Index == Int {
 
     @inlinable
     @discardableResult
-    public func seek(_ baseOffset: Int64) throws(ZipFileStorageError) -> Int64 {
+    public func seek(_ baseOffset: Int64) throws(ZipStorageError) -> Int64 {
         do {
             try self.buffer.seek(numericCast(baseOffset))
             return numericCast(self.buffer.position)
@@ -49,7 +50,7 @@ where Bytes.Element == UInt8, Bytes.Index == Int {
 
     @inlinable
     @discardableResult
-    public func seekOffset(_ offset: Int64) throws(ZipFileStorageError) -> Int64 {
+    public func seekOffset(_ offset: Int64) throws(ZipStorageError) -> Int64 {
         do {
             try self.buffer.seekOffset(numericCast(offset))
             return numericCast(self.buffer.position)
@@ -60,7 +61,7 @@ where Bytes.Element == UInt8, Bytes.Index == Int {
 
     @inlinable
     @discardableResult
-    public func seekEnd(_ offset: Int64 = 0) throws(ZipFileStorageError) -> Int64 {
+    public func seekEnd(_ offset: Int64 = 0) throws(ZipStorageError) -> Int64 {
         do {
             try self.buffer.seekEnd(numericCast(offset))
             return numericCast(self.buffer.position)
@@ -73,7 +74,7 @@ where Bytes.Element == UInt8, Bytes.Index == Int {
     public var length: Int { self.buffer.length }
 }
 
-extension ZipFileStorageError {
+extension ZipStorageError {
     @usableFromInline
     init(from memoryBufferError: MemoryBufferError) {
         switch memoryBufferError {

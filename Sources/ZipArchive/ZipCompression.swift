@@ -1,5 +1,6 @@
 import CZipZlib
 
+/// protocol for zip compression method
 protocol ZipCompressor {
     func inflate(from: [UInt8], uncompressedSize: Int) throws -> [UInt8]
     func deflate(from: [UInt8]) throws -> [UInt8]
@@ -16,6 +17,7 @@ struct DoNothingCompressor: ZipCompressor {
     }
 }
 
+/// Zip zlib deflate compression method
 class ZlibDeflateCompressor: ZipCompressor {
     let windowBits: Int32
 

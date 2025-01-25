@@ -9,6 +9,7 @@ import Foundation
 public enum Zip {
     static let versionMadeBy: UInt16 = 0x31e  // (Unix)
 
+    /// zip file header options
     public struct FileFlags: OptionSet {
         public let rawValue: UInt16
 
@@ -30,6 +31,7 @@ public enum Zip {
         static var reserved3: Self { .init(rawValue: 1 << 15) }
 
     }
+    /// zip file compression method
     public enum FileCompressionMethod: UInt16, Hashable {
         case noCompression = 0
         case shrunk = 1
@@ -54,13 +56,14 @@ public enum Zip {
         case ppmd = 98
     }
 
+    /// File header for a file in a zip archive.
     public struct FileHeader {
         //let versionMadeBy: UInt16
         var versionNeeded: UInt16
         public var flags: FileFlags
         public var compressionMethod: FileCompressionMethod
-        var fileModification: Date
-        var crc32: UInt32
+        public var fileModification: Date
+        public var crc32: UInt32
         var compressedSize: Int64
         public var uncompressedSize: Int64
         public var filename: String
@@ -72,14 +75,18 @@ public enum Zip {
         var offsetOfLocalHeader: Int64
     }
 
+    /// File header extra field
     public struct ExtraField {
         let header: ExtraFieldHeader
         let data: ArraySlice<UInt8>
     }
 
+    /// File header extra field header
     struct ExtraFieldHeader: RawRepresentable, Equatable {
         let rawValue: UInt16
+        /// Zip64 extra field (stores 64 bit file sizes and offset)
         static var zip64: Self { .init(rawValue: 1) }
+        /// Extended timestamp extra field (stores created and updated dates as seconds from 1970)
         static var extendedTimestamp: Self { .init(rawValue: 0x5455) }
     }
 

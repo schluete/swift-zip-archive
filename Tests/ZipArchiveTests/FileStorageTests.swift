@@ -29,7 +29,7 @@ final class ZipFileStorageTests {
             .readOnly
         )
         let file = try ZipFileStorage(fileDescriptor)
-        #expect(throws: ZipFileStorageError.self) { try file.read(read) }
+        #expect(throws: ZipStorageError.self) { try file.read(read) }
         try fileDescriptor.close()
     }
 
@@ -51,7 +51,7 @@ final class ZipFileStorageTests {
             .readOnly
         )
         let file = try ZipFileStorage(fileDescriptor)
-        #expect(throws: ZipFileStorageError.self) { try file.seek(offset) }
+        #expect(throws: ZipStorageError.self) { try file.seek(offset) }
         try fileDescriptor.close()
     }
 
@@ -84,7 +84,7 @@ final class ZipFileStorageTests {
         )
         let file = try ZipFileStorage(fileDescriptor)
         try file.seek(values.seek)
-        #expect(throws: ZipFileStorageError.self) { try file.read(values.readTo) }
+        #expect(throws: ZipStorageError.self) { try file.read(values.readTo) }
         try fileDescriptor.close()
     }
 

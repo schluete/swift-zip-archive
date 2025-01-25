@@ -7,7 +7,7 @@ import FoundationEssentials
 import Foundation
 #endif
 
-/// Zip file reader type
+/// Zip archive reader type
 public final class ZipArchiveReader<Storage: ZipReadableStorage> {
     let storage: Storage
     let endOfCentralDirectoryRecord: Zip.EndOfCentralDirectory
@@ -25,27 +25,20 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
     }
 
     /// Initialize ZipArchiveReader to read from a memory buffer
-    convenience public init<Bytes: RangeReplaceableCollection>(bytes: Bytes) throws
-    where Bytes.Element == UInt8, Bytes.Index == Int, Storage == ZipMemoryStorage<Bytes> {
-        try self.init(ZipMemoryStorage(bytes))
+    ///
+    /// - Parameter buffer: Buffer containing zip archive
+    convenience public init<Bytes: RangeReplaceableCollection>(
+        buffer: Bytes
+    ) throws where Bytes.Element == UInt8, Bytes.Index == Int, Storage == ZipMemoryStorage<Bytes> {
+        try self.init(ZipMemoryStorage(buffer))
     }
 
-    /// Read directory from zip file into an array
+    /// Read directory from zip archive into an array
     public func readDirectory() throws -> [Zip.FileHeader] {
         try storage.seek(numericCast(endOfCentralDirectoryRecord.offsetOfCentralDirectory))
         let bytes = try storage.read(numericCast(endOfCentralDirectoryRecord.centralDirectorySize))
         let memoryStorage = ZipMemoryStorage(bytes)
         return try readDirectory(memoryStorage)
-    }
-
-    /// Read directory from byffer
-    func readDirectory(_ storage: some ZipReadableStorage) throws -> [Zip.FileHeader] {
-        var directory: [Zip.FileHeader] = []
-        for _ in 0..<endOfCentralDirectoryRecord.diskEntries {
-            let fileHeader = try self.readFileHeader(from: storage)
-            directory.append(fileHeader)
-        }
-        return directory
     }
 
     /// Parse directory from zip file and run process on each entry
@@ -67,6 +60,11 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
     }
 
     /// Read file from zip file
+    ///
+    /// - Parameters:
+    ///   - file: File header, from zip directory
+    ///   - password: Password used to decrypt file
+    /// - Returns: Buffer containing file
     public func readFile(_ file: Zip.FileHeader, password: String? = nil) throws -> [UInt8] {
         precondition(self.parsingDirectory == false, "Cannot read file while parsing the directory")
         try self.storage.seek(numericCast(file.offsetOfLocalHeader))
@@ -103,6 +101,16 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
             throw ZipArchiveReaderError.crc32FileValidationFailed
         }
         return uncompressedBytes
+    }
+
+    /// Read directory from byffer
+    func readDirectory(_ storage: some ZipReadableStorage) throws -> [Zip.FileHeader] {
+        var directory: [Zip.FileHeader] = []
+        for _ in 0..<endOfCentralDirectoryRecord.diskEntries {
+            let fileHeader = try self.readFileHeader(from: storage)
+            directory.append(fileHeader)
+        }
+        return directory
     }
 
     func readLocalFileHeader() throws -> Zip.LocalFileHeader {
@@ -152,7 +160,9 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
                 break
             }
         }
-        guard let compressionMethod = Zip.FileCompressionMethod(rawValue: compression) else { throw ZipArchiveReaderError.invalidFileHeader }
+        guard let compressionMethod = Zip.FileCompressionMethod(rawValue: compression) else {
+            throw ZipArchiveReaderError.unsupportedCompressionMethod
+        }
         return .init(
             versionNeeded: versionNeeded,
             flags: .init(rawValue: flags),
@@ -232,7 +242,9 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
                 break
             }
         }
-        guard let compressionMethod = Zip.FileCompressionMethod(rawValue: compression) else { throw ZipArchiveReaderError.invalidDirectory }
+        guard let compressionMethod = Zip.FileCompressionMethod(rawValue: compression) else {
+            throw ZipArchiveReaderError.unsupportedCompressionMethod
+        }
         return .init(
             versionNeeded: versionNeeded,
             flags: .init(rawValue: flags),
@@ -395,6 +407,15 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
 }
 
 extension ZipArchiveReader where Storage == ZipFileStorage {
+    /// Use ZipArchiveReader to load zip archive from disk and process it contents.
+    ///
+    /// Opens file, create ``ZipArchiveReader`` using file descriptor, run supplied closure with
+    /// ``ZipArchiveReader`` and then close file.
+    ///
+    /// - Parameters:
+    ///   - filename: Filename of zip archive
+    ///   - process: Process to run with ZipArchiveReader
+    /// - Returns: Value returned by process function
     public static func withFile<Value>(_ filename: String, process: (ZipArchiveReader) throws -> Value) throws -> Value {
         let fileDescriptor = try FileDescriptor.open(
             .init(filename),
@@ -405,6 +426,16 @@ extension ZipArchiveReader where Storage == ZipFileStorage {
             return try process(zipArchiveReader)
         }
     }
+
+    /// Use ZipArchiveReader to load zip archive from disk and process it contents.
+    ///
+    /// Opens file, create ``ZipArchiveReader`` using file descriptor, run supplied closure with
+    /// ``ZipArchiveReader`` and then close file.
+    ///
+    /// - Parameters:
+    ///   - filename: Filename of zip archive
+    ///   - process: Process to run with ZipArchiveReader
+    /// - Returns: Value returned by process function
     public static func withFile<Value: Sendable>(
         _ filename: String,
         isolation: isolated (any Actor)? = #isolation,
@@ -421,6 +452,7 @@ extension ZipArchiveReader where Storage == ZipFileStorage {
     }
 }
 
+/// Errors received while reading zip archive
 public struct ZipArchiveReaderError: Error {
     internal enum Value {
         case invalidFileHeader
@@ -435,13 +467,21 @@ public struct ZipArchiveReaderError: Error {
     }
     internal let value: Value
 
+    /// Local file header was invalid
     public static var invalidFileHeader: Self { .init(value: .invalidFileHeader) }
+    /// Directory entry was invalid
     public static var invalidDirectory: Self { .init(value: .invalidDirectory) }
+    /// Failed to find the central directory
     public static var failedToFindCentralDirectory: Self { .init(value: .failedToFindCentralDirectory) }
+    /// Internal error, should not be seen. If you receive this please add an issue
+    /// to https://github.com/adam-fowler/swift-zip-archive
     public static var internalError: Self { .init(value: .internalError) }
+    /// Received an error while trying to decompress data
     public static var compressionError: Self { .init(value: .compressionError) }
+    /// Archive uses an unsupported compression method
     public static var unsupportedCompressionMethod: Self { .init(value: .unsupportedCompressionMethod) }
-    public static var failedToReadFromBuffer: Self { .init(value: .failedToReadFromBuffer) }
+    /// CRC32 validation of file failed
     public static var crc32FileValidationFailed: Self { .init(value: .crc32FileValidationFailed) }
+    /// File is encrypted and requires a password
     public static var encryptedFilesRequirePassword: Self { .init(value: .encryptedFilesRequirePassword) }
 }

@@ -21,7 +21,7 @@ struct ZipMemoryStorageTests {
     @Test(arguments: [-1, 11])
     func testReadFails(read: Int) throws {
         let file = ZipMemoryStorage(buffer)
-        #expect(throws: ZipFileStorageError.self) { try file.read(read) }
+        #expect(throws: ZipStorageError.self) { try file.read(read) }
     }
 
     @Test(arguments: [0, 5, 10])
@@ -33,7 +33,7 @@ struct ZipMemoryStorageTests {
     @Test(arguments: [-1, 11])
     func testSeekFails(offset: Int64) throws {
         let file = ZipMemoryStorage(buffer)
-        #expect(throws: ZipFileStorageError.self) { try file.seek(offset) }
+        #expect(throws: ZipStorageError.self) { try file.seek(offset) }
     }
 
     @Test(arguments: [
@@ -56,7 +56,7 @@ struct ZipMemoryStorageTests {
     func testSeekAndReadFail(values: (seek: Int64, readTo: Int)) throws {
         let file = ZipMemoryStorage(buffer)
         try file.seek(values.seek)
-        #expect(throws: ZipFileStorageError.self) { try file.read(values.readTo) }
+        #expect(throws: ZipStorageError.self) { try file.read(values.readTo) }
     }
 
     @Test func testWrite() throws {

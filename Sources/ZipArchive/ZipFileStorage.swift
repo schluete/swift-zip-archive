@@ -1,5 +1,6 @@
 import SystemPackage
 
+/// Zip storage on disk
 public struct ZipFileStorage: ZipReadableStorage, ZipWriteableStorage {
     @usableFromInline
     let fileDescriptor: FileDescriptor
@@ -14,7 +15,7 @@ public struct ZipFileStorage: ZipReadableStorage, ZipWriteableStorage {
     }
 
     @inlinable
-    public func read(_ count: Int) throws(ZipFileStorageError) -> [UInt8] {
+    public func read(_ count: Int) throws(ZipStorageError) -> [UInt8] {
         guard count >= 0 else { throw .fileOffsetOutOfRange }
         guard count > 0 else { return [] }
         let buffer: [UInt8]
@@ -25,13 +26,13 @@ public struct ZipFileStorage: ZipReadableStorage, ZipWriteableStorage {
         } catch {
             throw .internalError
         }
-        guard buffer.count == count else { throw ZipFileStorageError.readingPastEndOfFile }
+        guard buffer.count == count else { throw ZipStorageError.readingPastEndOfFile }
         return buffer
     }
 
     @inlinable
     @discardableResult
-    public func seek(_ index: Int64) throws(ZipFileStorageError) -> Int64 {
+    public func seek(_ index: Int64) throws(ZipStorageError) -> Int64 {
         do {
             let offset = try self.fileDescriptor.seek(offset: index, from: .start)
             return offset
@@ -44,9 +45,9 @@ public struct ZipFileStorage: ZipReadableStorage, ZipWriteableStorage {
 
     @inlinable
     @discardableResult
-    public func seekOffset(_ index: Int64) throws(ZipFileStorageError) -> Int64 {
+    public func seekOffset(_ offset: Int64) throws(ZipStorageError) -> Int64 {
         do {
-            let offset = try self.fileDescriptor.seek(offset: index, from: .current)
+            let offset = try self.fileDescriptor.seek(offset: offset, from: .current)
             return offset
         } catch let error as Errno where error == .invalidArgument {
             throw .fileOffsetOutOfRange
@@ -57,7 +58,7 @@ public struct ZipFileStorage: ZipReadableStorage, ZipWriteableStorage {
 
     @inlinable
     @discardableResult
-    public func seekEnd(_ offset: Int64 = 0) throws(ZipFileStorageError) -> Int64 {
+    public func seekEnd(_ offset: Int64 = 0) throws(ZipStorageError) -> Int64 {
         do {
             let offset = try self.fileDescriptor.seek(offset: offset, from: .end)
             return offset
@@ -66,21 +67,21 @@ public struct ZipFileStorage: ZipReadableStorage, ZipWriteableStorage {
         }
     }
 
-    public func write<Bytes>(bytes: Bytes) throws(ZipFileStorageError) where Bytes: Collection, Bytes.Element == UInt8 {
+    public func write<Bytes>(bytes: Bytes) throws(ZipStorageError) where Bytes: Collection, Bytes.Element == UInt8 {
         do {
             guard
                 try bytes.withContiguousStorageIfAvailable({ buffer in
                     try self.fileDescriptor.write(.init(buffer))
                 }) != nil
             else {
-                throw ZipFileStorageError.internalError
+                throw ZipStorageError.internalError
             }
         } catch {
             throw .internalError
         }
     }
 
-    public func truncate(_ size: Int64) throws(ZipFileStorageError) {
+    public func truncate(_ size: Int64) throws(ZipStorageError) {
         do {
             try self.fileDescriptor.resize(to: size)
         } catch {
