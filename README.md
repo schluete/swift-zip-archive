@@ -30,7 +30,7 @@ To write to a file on disk you can either append to an existing zip file.
 
 ```swift
 try ZipArchiveWriter.withFile(filename) { writer in
-    try writer.addFile(filename: "Hello.txt", contents: .init("Hello, world!".utf8))
+    try writer.writeFile(filename: "Hello.txt", contents: .init("Hello, world!".utf8))
 }
 ```
 
@@ -38,7 +38,7 @@ Or you can create a new zip file by adding the `.create` option.
 
 ```swift
 try ZipArchiveWriter.withFile(filename, options: .create) { writer in
-    try writer.addFile(filename: "Hello.txt", contents: .init("Hello, world!".utf8))
+    try writer.writeFile(filename: "Hello.txt", contents: .init("Hello, world!".utf8))
 }
 ```
 
@@ -46,7 +46,7 @@ There are equivalent operations for writing to a memory buffer as well
 
 ```swift
 let writer = ZipArchiveWriter()
-try writer.addFile(filename: "Hello.txt", contents: .init("Hello, world!".utf8))
+try writer.writeFile(filename: "Hello.txt", contents: .init("Hello, world!".utf8))
 let buffer = try writer.finalizeBuffer()
 ```
 
@@ -54,7 +54,7 @@ And to append to a zip file in memory
 
 ```swift
 let writer = ZipArchiveWriter(bytes: zipBuffer)
-try writer.addFile(filename: "Hello.txt", contents: .init("Hello, world!".utf8))
+try writer.writeFile(filename: "Hello.txt", contents: .init("Hello, world!".utf8))
 let buffer = try writer.finalizeBuffer()
 ```
 
