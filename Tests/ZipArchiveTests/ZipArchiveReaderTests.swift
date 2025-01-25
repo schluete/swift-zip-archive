@@ -57,6 +57,17 @@ struct ZipArchiveReaderTests {
     }
 
     @Test
+    func loadEncryptedZipArchive() throws {
+        let filePath = Bundle.module.path(forResource: "encrypted", ofType: "zip")!
+        try ZipArchiveReader.withFile(filePath) { zipArchiveReader in
+            let zipArchiveDirectory = try zipArchiveReader.readDirectory()
+            let packageSwiftRecord = try #require(zipArchiveDirectory.first { $0.filename == "Sources/ZipArchive/ZipArchiveReader.swift" })
+            let file = try zipArchiveReader.readFile(packageSwiftRecord, password: "testing123")
+            #expect(String(decoding: file[...14], as: UTF8.self) == "import CZipZlib")
+        }
+    }
+
+    @Test
     func loadZip64File() throws {
         let filePath = Bundle.module.path(forResource: "hello64", ofType: "zip")!
         try ZipArchiveReader.withFile(filePath) { zipArchiveReader in

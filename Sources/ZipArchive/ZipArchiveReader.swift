@@ -67,7 +67,7 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
     }
 
     /// Read file from zip file
-    public func readFile(_ file: Zip.FileHeader) throws -> [UInt8] {
+    public func readFile(_ file: Zip.FileHeader, password: String? = nil) throws -> [UInt8] {
         precondition(self.parsingDirectory == false, "Cannot read file while parsing the directory")
         try self.storage.seek(numericCast(file.offsetOfLocalHeader))
         let localFileHeader = try readLocalFileHeader()
@@ -75,18 +75,29 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
         guard let compressor = self.compressionMethods[localFileHeader.compressionMethod] else {
             throw ZipArchiveReaderError.unsupportedCompressionMethod
         }
+        var encryptionKeys: [UInt8]?
+        // if encrypted read encryption header
+        if localFileHeader.flags.contains(.encrypted) {
+            encryptionKeys = try self.storage.readBytes(length: 12)
+        } else {
+            encryptionKeys = nil
+        }
+
         // Read bytes and uncompress
-        let fileBytes = try self.storage.readBytes(length: numericCast(localFileHeader.compressedSize))
+        var fileBytes = try self.storage.readBytes(length: numericCast(localFileHeader.compressedSize))
+
+        // if we have a password and encryption keys
+        if let password, var encryptionKeys {
+            var cryptKey = CryptKey(password: password)
+            cryptKey.decryptBytes(&encryptionKeys)
+            cryptKey.decryptBytes(&fileBytes)
+        } else if encryptionKeys != nil {
+            throw ZipArchiveReaderError.encryptedFilesRequirePassword
+        }
         let uncompressedBytes = try compressor.inflate(from: fileBytes, uncompressedSize: numericCast(localFileHeader.uncompressedSize))
         // Verify CRC32
-        let crc = uncompressedBytes.withUnsafeBytes { bytes in
-            var crc = crc32(0xffff_ffff, nil, 0)
-            crc = crc32(crc, bytes.baseAddress, numericCast(bytes.count))
-            return crc
-        }
+        let crc = crc32(0, bytes: uncompressedBytes)
         guard crc == localFileHeader.crc32 else {
-            print(crc)
-            print(localFileHeader.crc32)
             throw ZipArchiveReaderError.crc32FileValidationFailed
         }
         return uncompressedBytes
@@ -418,6 +429,7 @@ public struct ZipArchiveReaderError: Error {
         case unsupportedCompressionMethod
         case failedToReadFromBuffer
         case crc32FileValidationFailed
+        case encryptedFilesRequirePassword
     }
     internal let value: Value
 
@@ -429,4 +441,5 @@ public struct ZipArchiveReaderError: Error {
     public static var unsupportedCompressionMethod: Self { .init(value: .unsupportedCompressionMethod) }
     public static var failedToReadFromBuffer: Self { .init(value: .failedToReadFromBuffer) }
     public static var crc32FileValidationFailed: Self { .init(value: .crc32FileValidationFailed) }
+    public static var encryptedFilesRequirePassword: Self { .init(value: .encryptedFilesRequirePassword) }
 }

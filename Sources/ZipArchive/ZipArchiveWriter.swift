@@ -92,11 +92,7 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
         }
         try addFolder(filePath.removingRoot().removingLastComponent())
         // Calculate CRC32
-        let crc = contents.withUnsafeBytes { bytes in
-            var crc = crc32(0xffff_ffff, nil, 0)
-            crc = crc32(crc, bytes.baseAddress, numericCast(bytes.count))
-            return crc
-        }
+        let crc = crc32(0, bytes: contents)
         let currentOffest = try self.storage.seekOffset(0)
         let compressedContents = try ZlibDeflateCompressor(windowBits: 15).deflate(from: contents)
         let fileHeader = Zip.FileHeader(
@@ -104,7 +100,7 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
             flags: [],
             compressionMethod: .deflated,
             fileModification: .now,
-            crc32: numericCast(crc),
+            crc32: crc,
             compressedSize: numericCast(compressedContents.count),
             uncompressedSize: numericCast(contents.count),
             filename: filename,
