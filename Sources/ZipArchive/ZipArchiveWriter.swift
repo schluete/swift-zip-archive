@@ -126,6 +126,7 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
         if var cryptKey {
             // Add random 12 byte encryption header before file
             var encryptionKeys = (0..<12).map { _ in UInt8.random(in: 0...255) }
+            encryptionKeys[11] = UInt8(crc >> 24)
             cryptKey.encryptBytes(&encryptionKeys)
             try storage.write(bytes: encryptionKeys)
 
