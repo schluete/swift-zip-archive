@@ -66,6 +66,20 @@ struct ZipArchiveWriterTests {
     }
 
     @Test
+    func testAddingEncryptedFileToZipArchive() throws {
+        let writer = ZipArchiveWriter()
+        try writer.addFile(filename: "Hello.txt", contents: .init("Hello, world!".utf8), password: "testAddingEncryptedFileToZipArchive")
+        let buffer = try writer.finalizeBuffer()
+        let zipArchiveReader = try ZipArchiveReader(bytes: buffer)
+        let directory = try zipArchiveReader.readDirectory()
+        #expect(directory.count == 1)
+        #expect(directory.first?.filename == "Hello.txt")
+        let fileHeader = try #require(directory.first)
+        let fileContents = try zipArchiveReader.readFile(fileHeader, password: "testAddingEncryptedFileToZipArchive")
+        #expect(fileContents == .init("Hello, world!".utf8))
+    }
+
+    @Test
     func testAddingFileToEmptyFileZipArchive() throws {
         let filename = "testAddingFileToEmptyFileZipArchive.zip"
         defer {

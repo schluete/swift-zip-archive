@@ -80,7 +80,7 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
         return self.storage.buffer.buffer
     }
 
-    public func addFile(filename: String, contents: [UInt8]) throws {
+    public func addFile(filename: String, contents: [UInt8], password: String? = nil) throws {
         let filePath = FilePath(filename)
         let existingFileHeader =
             self.directory.first(where: { $0.filename == filePath.string })
@@ -94,10 +94,18 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
         // Calculate CRC32
         let crc = crc32(0, bytes: contents)
         let currentOffest = try self.storage.seekOffset(0)
-        let compressedContents = try ZlibDeflateCompressor(windowBits: 15).deflate(from: contents)
+
+        var compressedContents = try ZlibDeflateCompressor(windowBits: 15).deflate(from: contents)
+
+        var flags: Zip.FileFlags = []
+        var cryptKey: CryptKey? = nil
+        if let password {
+            flags.insert(.encrypted)
+            cryptKey = CryptKey(password: password)
+        }
         let fileHeader = Zip.FileHeader(
             versionNeeded: 20,
-            flags: [],
+            flags: flags,
             compressionMethod: .deflated,
             fileModification: .now,
             crc32: crc,
@@ -112,6 +120,17 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
             offsetOfLocalHeader: currentOffest
         )
         try writeLocalFileHeader(fileHeader)
+
+        if var cryptKey {
+            // Add random 12 byte encryption header before file
+            var encryptionKeys = (0..<12).map { _ in UInt8.random(in: 0...255) }
+            cryptKey.encryptBytes(&encryptionKeys)
+            try storage.write(bytes: encryptionKeys)
+
+            // encrypt contents
+            cryptKey.encryptBytes(&compressedContents)
+        }
+
         try storage.write(bytes: compressedContents)
 
         self.newDirectoryEntries.append(fileHeader)
