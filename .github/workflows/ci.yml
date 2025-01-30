@@ -3,26 +3,68 @@ name: CI
 on:
   push:
     branches:
-    - main
+      - main
     paths:
-    - '**.swift'
-    - '**.yml'
+      - "**.swift"
+      - "**.yml"
   pull_request:
   workflow_dispatch:
 
 jobs:
+  macos:
+    runs-on: macOS-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: SPM tests
+        run: swift test --enable-code-coverage
+      - name: Convert coverage files
+        run: |
+          xcrun llvm-cov export -format "lcov" \
+            .build/debug/swift-zip-archivePackageTests.xctest/Contents/MacOs/swift-zip-archivePackageTests \
+            -ignore-filename-regex="\/Tests\/" \
+            -instr-profile=.build/debug/codecov/default.profdata > info.lcov
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v4
+        with:
+          file: info.lcov
+          token: ${{ secrets.CODECOV_TOKEN }}
+
   linux:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
       matrix:
         image: ["swift:6.0"]
-    
+
     container:
       image: ${{ matrix.image }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-    - name: Test
-      run: |
-        swift test
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Test
+        run: |
+          swift test --enable-code-coverage
+      - name: Convert coverage files
+        run: |
+          llvm-cov export -format="lcov" \
+            .build/debug/swift-zip-archivePackageTests.xctest \
+            -ignore-filename-regex="\/Tests\/" \
+            -instr-profile .build/debug/codecov/default.profdata > info.lcov
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v4
+        with:
+          files: info.lcov
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: compnerd/gha-setup-swift@main
+        with:
+          branch: swift-6.0-release
+          tag: 6.0-RELEASE
+      - uses: actions/checkout@v4
+      - run: swift test
