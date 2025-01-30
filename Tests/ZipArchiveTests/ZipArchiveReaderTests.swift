@@ -14,7 +14,7 @@ struct ZipArchiveReaderTests {
     }
     @Test
     func loadZipDirectoryFromMemory() throws {
-        let filePath = Bundle.module.path(forResource: "source", ofType: "zip")!
+        let filePath = Bundle.module.fixedUpPath(forResource: "source", ofType: "zip")!
         let fileHandle = FileHandle(forReadingAtPath: filePath)
         let data = try #require(try fileHandle?.readToEnd())
         let zipArchiveReader = try ZipArchiveReader(ZipMemoryStorage(data))
@@ -26,7 +26,7 @@ struct ZipArchiveReaderTests {
 
     @Test
     func loadZipArchiveFromMemory() throws {
-        let filePath = Bundle.module.path(forResource: "source", ofType: "zip")!
+        let filePath = Bundle.module.fixedUpPath(forResource: "source", ofType: "zip")!
         let fileHandle = FileHandle(forReadingAtPath: filePath)
         let data = try #require(try fileHandle?.readToEnd())
         let ZipArchiveReader = try ZipArchiveReader(ZipMemoryStorage(data))
@@ -36,7 +36,7 @@ struct ZipArchiveReaderTests {
 
     @Test
     func loadZipDirectory() throws {
-        let filePath = Bundle.module.path(forResource: "source", ofType: "zip")!
+        let filePath = Bundle.module.fixedUpPath(forResource: "source", ofType: "zip")!
         try ZipArchiveReader.withFile(filePath) { zipArchiveReader in
             let zipArchiveDirectory = try zipArchiveReader.readDirectory()
             #expect(zipArchiveDirectory.count == 9)
@@ -47,7 +47,7 @@ struct ZipArchiveReaderTests {
 
     @Test
     func parseZipDirectory() throws {
-        let filePath = Bundle.module.path(forResource: "source", ofType: "zip")!
+        let filePath = Bundle.module.fixedUpPath(forResource: "source", ofType: "zip")!
         try ZipArchiveReader.withFile(filePath) { zipArchiveReader in
             var fileHeader: Zip.FileHeader?
             try zipArchiveReader.parseDirectory { file in
@@ -61,7 +61,7 @@ struct ZipArchiveReaderTests {
 
     @Test
     func loadZipArchive() throws {
-        let filePath = Bundle.module.path(forResource: "source", ofType: "zip")!
+        let filePath = Bundle.module.fixedUpPath(forResource: "source", ofType: "zip")!
         try ZipArchiveReader.withFile(filePath) { zipArchiveReader in
             let zipArchiveDirectory = try zipArchiveReader.readDirectory()
             let packageSwiftRecord = try #require(zipArchiveDirectory.first { $0.filename == "Sources/Zip/MemoryFileStorage.swift" })
@@ -72,7 +72,7 @@ struct ZipArchiveReaderTests {
 
     @Test
     func loadEncryptedZipArchive() throws {
-        let filePath = Bundle.module.path(forResource: "encrypted", ofType: "zip")!
+        let filePath = Bundle.module.fixedUpPath(forResource: "encrypted", ofType: "zip")!
         try ZipArchiveReader.withFile(filePath) { zipArchiveReader in
             let zipArchiveDirectory = try zipArchiveReader.readDirectory()
             let packageSwiftRecord = try #require(zipArchiveDirectory.first { $0.filename == "Sources/ZipArchive/ZipArchiveReader.swift" })
@@ -83,7 +83,7 @@ struct ZipArchiveReaderTests {
 
     @Test
     func loadZip64File() throws {
-        let filePath = Bundle.module.path(forResource: "hello64", ofType: "zip")!
+        let filePath = Bundle.module.fixedUpPath(forResource: "hello64", ofType: "zip")!
         try ZipArchiveReader.withFile(filePath) { zipArchiveReader in
             let ZipArchiveDirectory = try zipArchiveReader.readDirectory()
             let file = try zipArchiveReader.readFile(ZipArchiveDirectory[0])

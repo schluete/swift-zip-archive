@@ -81,5 +81,9 @@ jobs:
           cmake --install . --prefix ../install
       - name: Checkout
         uses: actions/checkout@v4
-      - run: |
+      - name: Swift version
+        run: |
+          swift --version
+      - name: Test
+        run: |
           swift test -Xcc -I'C:/Program Files (x86)/zlib/include' -Xlinker -L'C:/Program Files (x86)/zlib/lib'

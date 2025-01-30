@@ -56,7 +56,8 @@ struct ZipArchiveWriterTests {
         let writer2 = try ZipArchiveWriter(bytes: buffer)
 
         #expect(writer2.directory.count == 2)
-        #expect(writer2.directory.first?.filename == "Tests/")
+        let firstFilename = try #require(writer2.directory.first?.filename)
+        #expect(FilePath(firstFilename) == "Tests/")
         try writer2.writeFile(filename: "Tests/Two/Hello2.txt", contents: .init("Hello, world!".utf8))
         let buffer2 = try writer2.finalizeBuffer()
         let zipArchiveReader = try ZipArchiveReader(buffer: buffer2)
