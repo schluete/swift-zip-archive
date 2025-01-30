@@ -80,7 +80,11 @@ class ZlibDeflateCompressor: ZipCompressor {
         // some compression algorithms and so it should be used only when necessary. This completes the current deflate block and
         // follows it with an empty stored block that is three bits plus filler bits to the next byte, followed by four bytes
         // (00 00 ff ff)."
+        #if os(Windows)
+        let largestCompressedSize = deflateBound(&stream, UInt32(from.count)) + 6
+        #else
         let largestCompressedSize = deflateBound(&stream, UInt(from.count)) + 6
+        #endif
 
         return try .init(unsafeUninitializedCapacity: Int(largestCompressedSize)) { toBuffer, count in
             try from.withUnsafeMutableBytes { fromBuffer in
