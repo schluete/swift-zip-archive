@@ -41,7 +41,7 @@ extension ZipReadableStorage {
         withUnsafeMutableBytes(of: &value) { valuePtr in
             valuePtr.copyBytes(from: buffer)
         }
-        return value
+        return value.littleEndian
     }
 
     /// Read string of length from buffer
@@ -117,7 +117,7 @@ extension ZipWriteableStorage {
         _ value: T
     ) throws(ZipStorageError) {
         do {
-            try withUnsafeBytes(of: value) { valuePtr in
+            try withUnsafeBytes(of: value.littleEndian) { valuePtr in
                 try write(bytes: valuePtr)
             }
         } catch let error as ZipStorageError {
@@ -136,7 +136,7 @@ extension ZipWriteableStorage {
     }
 }
 
-/// Error thrown by ZipStorage 
+/// Error thrown by ZipStorage
 public struct ZipStorageError: Error {
     internal enum Value {
         case fileOffsetOutOfRange
@@ -149,7 +149,7 @@ public struct ZipStorageError: Error {
     public static var fileOffsetOutOfRange: Self { .init(value: .fileOffsetOutOfRange) }
     /// Trying to read past the end of the storage
     public static var readingPastEndOfFile: Self { .init(value: .readPastEndOfFile) }
-    /// Internal, should not be thrown. If you receive this please add an issue 
+    /// Internal, should not be thrown. If you receive this please add an issue
     /// to https://github.com/adam-fowler/swift-zip-archive
     public static var internalError: Self { .init(value: .internalError) }
 }
