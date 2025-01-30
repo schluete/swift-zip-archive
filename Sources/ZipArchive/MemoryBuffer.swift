@@ -87,7 +87,7 @@ struct MemoryBuffer<Bytes: RangeReplaceableCollection> where Bytes.Element == UI
         withUnsafeMutableBytes(of: &value) { valuePtr in
             valuePtr.copyBytes(from: buffer)
         }
-        return value
+        return value.littleEndian
     }
 
     @inlinable
