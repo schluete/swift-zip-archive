@@ -62,7 +62,7 @@ struct ZipArchiveWriterTests {
         let zipArchiveReader = try ZipArchiveReader(buffer: buffer2)
         let directory = try zipArchiveReader.readDirectory()
         #expect(directory.count == 4)
-        #expect(directory.map(\.filename) == ["Tests/", "Tests/Hello.txt", "Tests/Two/", "Tests/Two/Hello2.txt"])
+        #expect(directory.map { FilePath($0.filename) } == ["Tests/", "Tests/Hello.txt", "Tests/Two/", "Tests/Two/Hello2.txt"])
     }
 
     @Test
