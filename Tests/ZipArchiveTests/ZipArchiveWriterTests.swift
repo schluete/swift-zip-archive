@@ -57,13 +57,13 @@ struct ZipArchiveWriterTests {
 
         #expect(writer2.directory.count == 2)
         let firstFilename = try #require(writer2.directory.first?.filename)
-        #expect(FilePath(firstFilename) == "Tests/")
+        #expect(firstFilename == "Tests/")
         try writer2.writeFile(filename: "Tests/Two/Hello2.txt", contents: .init("Hello, world!".utf8))
         let buffer2 = try writer2.finalizeBuffer()
         let zipArchiveReader = try ZipArchiveReader(buffer: buffer2)
         let directory = try zipArchiveReader.readDirectory()
         #expect(directory.count == 4)
-        #expect(directory.map { FilePath($0.filename) } == ["Tests/", "Tests/Hello.txt", "Tests/Two/", "Tests/Two/Hello2.txt"])
+        #expect(directory.map { $0.filename } == ["Tests/", "Tests/Hello.txt", "Tests/Two/", "Tests/Two/Hello2.txt"])
     }
 
     @Test

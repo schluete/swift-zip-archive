@@ -171,7 +171,7 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
             crc32: crc32,
             compressedSize: compressedSize64,
             uncompressedSize: uncompressedSize64,
-            filename: filename,
+            filename: .init(filename),
             extraFields: extraFields
         )
     }
@@ -253,7 +253,7 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
             crc32: crc32,
             compressedSize: compressedSize64,
             uncompressedSize: uncompressedSize64,
-            filename: filename,
+            filename: .init(filename),
             extraFields: extraFields,
             comment: comment,
             diskStart: diskStart32,

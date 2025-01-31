@@ -1,3 +1,5 @@
+import SystemPackage
+
 #if canImport(FoundationEssentials)
 import FoundationEssentials
 #else
@@ -66,7 +68,7 @@ public enum Zip {
         public var crc32: UInt32
         var compressedSize: Int64
         public var uncompressedSize: Int64
-        public var filename: String
+        public var filename: FilePath
         var extraFields: [ExtraField]
         public var comment: String
         var diskStart: UInt32
@@ -106,7 +108,7 @@ public enum Zip {
         var crc32: UInt32
         var compressedSize: Int64
         var uncompressedSize: Int64
-        var filename: String
+        var filename: FilePath
         var extraFields: [ExtraField]
     }
 
