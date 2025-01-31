@@ -166,7 +166,7 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
         #else
         let separator = "/"
         #endif
-        let folderName: FilePath = .init("\(filePath.string)\(separator)")
+        let folderName: FilePath = .init("\(filePath)\(separator)")
         guard !filePath.isEmpty else { return }
         let existingFileHeader =
             self.directory.first(where: { $0.filename == folderName })
