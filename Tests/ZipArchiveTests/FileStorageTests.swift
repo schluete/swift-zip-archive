@@ -120,6 +120,7 @@ final class ZipFileStorageTests {
 }
 
 extension Bundle {
+    /// Fix up paths returned by `Bundle.module.path(forResource:ofType:)` on Windows
     func fixedUpPath(forResource name: String?, ofType ext: String?) -> String? {
         #if os(Windows)
         Bundle.module.path(forResource: name, ofType: ext).map {
