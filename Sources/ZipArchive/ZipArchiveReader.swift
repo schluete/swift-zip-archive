@@ -453,7 +453,7 @@ extension ZipArchiveReader where Storage == ZipFileStorage {
 }
 
 /// Errors received while reading zip archive
-public struct ZipArchiveReaderError: Error {
+public struct ZipArchiveReaderError: Error, Equatable {
     internal enum Value {
         case invalidFileHeader
         case invalidDirectory

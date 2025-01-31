@@ -106,10 +106,8 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
         let existingFileHeader =
             self.directory.first(where: { $0.filename == filePath })
             ?? self.newDirectoryEntries.first(where: { $0.filename == filePath })
-        if let existingFileHeader {
-            guard existingFileHeader.uncompressedSize == 0 else {
-                throw ZipArchiveWriterError.fileAlreadyExists
-            }
+        guard existingFileHeader == nil else {
+            throw ZipArchiveWriterError.fileAlreadyExists
         }
         try addFolder(filePath.removingRoot().removingLastComponent())
         // Calculate CRC32
@@ -166,12 +164,12 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
         #else
         let separator = "/"
         #endif
-        let folderName: FilePath = .init("\(filePath)\(separator)")
         guard !filePath.isEmpty else { return }
         let existingFileHeader =
-            self.directory.first(where: { $0.filename == folderName })
-            ?? self.newDirectoryEntries.first(where: { $0.filename == folderName })
+            self.directory.first(where: { $0.filename == filePath })
+            ?? self.newDirectoryEntries.first(where: { $0.filename == filePath })
         if let existingFileHeader {
+            // if uncompressedSize is zero then we can assume this is a folder (Can we?)
             guard existingFileHeader.uncompressedSize == 0 else {
                 throw ZipArchiveWriterError.fileAlreadyExists
             }
@@ -185,7 +183,7 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
             crc32: 0,
             compressedSize: 0,
             uncompressedSize: 0,
-            filename: folderName,
+            filename: filePath,
             extraFields: [],
             comment: "",
             diskStart: 0,
@@ -479,7 +477,7 @@ extension ZipArchiveWriter {
 }
 
 /// Errors thrown when writing zip archives
-public struct ZipArchiveWriterError: Error {
+public struct ZipArchiveWriterError: Error, Equatable {
     internal enum Value {
         case fileAlreadyExists
     }
