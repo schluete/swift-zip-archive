@@ -82,6 +82,17 @@ struct ZipArchiveReaderTests {
     }
 
     @Test
+    func loadZipArchiveWithUTF8EncodedFilenames() throws {
+        let filePath = Bundle.module.fixedUpPath(forResource: "encoding", ofType: "zip")!
+        try ZipArchiveReader.withFile(filePath) { zipArchiveReader in
+            let zipArchiveDirectory = try zipArchiveReader.readDirectory()
+            // zip files created on mac don't set encoding flag for utf8 encoded filenames
+            _ = try #require(zipArchiveDirectory.first { $0.filename == "encoding/tést.txt" })
+            _ = try #require(zipArchiveDirectory.first { $0.filename == "encoding/smiley😀.txt" })
+        }
+    }
+
+    @Test
     func loadZip64File() throws {
         let filePath = Bundle.module.fixedUpPath(forResource: "hello64", ofType: "zip")!
         try ZipArchiveReader.withFile(filePath) { zipArchiveReader in
