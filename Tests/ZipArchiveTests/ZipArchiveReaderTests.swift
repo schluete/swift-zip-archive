@@ -71,6 +71,17 @@ struct ZipArchiveReaderTests {
     }
 
     @Test
+    func loadLinuxZipArchive() throws {
+        let filePath = Bundle.module.fixedUpPath(forResource: "linux", ofType: "zip")!
+        try ZipArchiveReader.withFile(filePath) { zipArchiveReader in
+            let zipArchiveDirectory = try zipArchiveReader.readDirectory()
+            let packageSwiftRecord = try #require(zipArchiveDirectory.first { $0.filename == "Sources/ZipArchive/ZipMemoryStorage.swift" })
+            let file = try zipArchiveReader.readFile(packageSwiftRecord)
+            #expect(String(decoding: file[...29], as: UTF8.self) == "/// Storage in a memory buffer")
+        }
+    }
+
+    @Test
     func loadEncryptedZipArchive() throws {
         let filePath = Bundle.module.fixedUpPath(forResource: "encrypted", ofType: "zip")!
         try ZipArchiveReader.withFile(filePath) { zipArchiveReader in
