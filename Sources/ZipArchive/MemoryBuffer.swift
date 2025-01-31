@@ -104,7 +104,7 @@ struct MemoryBuffer<Bytes: RangeReplaceableCollection> where Bytes.Element == UI
     public mutating func writeInteger<T: FixedWidthInteger>(
         _ value: T
     ) {
-        withUnsafeBytes(of: value) { valuePtr in
+        withUnsafeBytes(of: value.littleEndian) { valuePtr in
             write(bytes: valuePtr)
         }
     }

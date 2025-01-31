@@ -5,7 +5,8 @@ import Testing
 @testable import ZipArchive
 
 final class ZipFileStorageTests {
-    let filePath = Bundle.module.path(forResource: "test", ofType: "bin")!
+    let filePath = Bundle.module.fixedUpPath(forResource: "test", ofType: "bin")!
+
     @Test(arguments: [
         (0, []),
         (3, [0, 1, 2]),
@@ -116,4 +117,21 @@ final class ZipFileStorageTests {
         try file.seek(0)
         #expect(try file.read(8) == [1, 2, 7, 8, 9, 7, 8, 9])
     }*/
+}
+
+extension Bundle {
+    /// Fix up paths returned by `Bundle.module.path(forResource:ofType:)` on Windows
+    func fixedUpPath(forResource name: String?, ofType ext: String?) -> String? {
+        #if os(Windows)
+        Bundle.module.path(forResource: name, ofType: ext).map {
+            if $0.first == "/" {
+                String($0.dropFirst())
+            } else {
+                $0
+            }
+        }
+        #else
+        Bundle.module.path(forResource: name, ofType: ext)
+        #endif
+    }
 }

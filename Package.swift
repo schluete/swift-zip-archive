@@ -1,6 +1,7 @@
 // swift-tools-version: 6.0
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
+import Foundation
 import PackageDescription
 
 let package = Package(
@@ -14,10 +15,7 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "CZipZlib",
-            linkerSettings: [
-                .linkedLibrary("z")
-            ]
+            name: "CZipZlib"
         ),
         .target(
             name: "ZipArchive",
@@ -33,3 +31,16 @@ let package = Package(
         ),
     ]
 )
+
+if let target = package.targets.filter({ $0.name == "CZipZlib" }).first {
+    #if os(Windows)
+    if ProcessInfo.processInfo.environment["ZIP_USE_DYNAMIC_ZLIB"] == nil {
+        target.cSettings?.append(contentsOf: [.define("ZLIB_STATIC")])
+        target.linkerSettings = [.linkedLibrary("zlibstatic")]
+    } else {
+        target.linkerSettings = [.linkedLibrary("zlib")]
+    }
+    #else
+    target.linkerSettings = [.linkedLibrary("z")]
+    #endif
+}
