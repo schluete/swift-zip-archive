@@ -87,7 +87,8 @@ struct ZipArchiveReaderTests {
         try ZipArchiveReader.withFile(filePath) { zipArchiveReader in
             let zipArchiveDirectory = try zipArchiveReader.readDirectory()
             // zip files created on mac don't set encoding flag for utf8 encoded filenames
-            _ = try #require(zipArchiveDirectory.first { $0.filename == "encoding/tést.txt" })
+
+            _ = try #require(zipArchiveDirectory.first { $0.filename == "encoding/tést.txt" })
             _ = try #require(zipArchiveDirectory.first { $0.filename == "encoding/smiley😀.txt" })
         }
     }
