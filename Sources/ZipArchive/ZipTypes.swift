@@ -19,16 +19,16 @@ public enum Zip {
             self.rawValue = rawValue
         }
 
-        static var encrypted: Self { .init(rawValue: 1 << 0) }
-        static var compressionOption1: Self { .init(rawValue: 1 << 1) }
-        static var compressionOption2: Self { .init(rawValue: 1 << 2) }
-        static var dataDescriptor: Self { .init(rawValue: 1 << 3) }
-        static var enhancedDeflation: Self { .init(rawValue: 1 << 4) }
-        static var compressedPatchedData: Self { .init(rawValue: 1 << 5) }
-        static var strongEncryption: Self { .init(rawValue: 1 << 6) }
-        static var languageEncoding: Self { .init(rawValue: 1 << 11) }
+        public static var encrypted: Self { .init(rawValue: 1 << 0) }
+        public static var compressionOption1: Self { .init(rawValue: 1 << 1) }
+        public static var compressionOption2: Self { .init(rawValue: 1 << 2) }
+        public static var dataDescriptor: Self { .init(rawValue: 1 << 3) }
+        public static var enhancedDeflation: Self { .init(rawValue: 1 << 4) }
+        public static var compressedPatchedData: Self { .init(rawValue: 1 << 5) }
+        public static var strongEncryption: Self { .init(rawValue: 1 << 6) }
+        public static var languageEncoding: Self { .init(rawValue: 1 << 11) }
         static var reserved1: Self { .init(rawValue: 1 << 12) }
-        static var maskHeaderValues: Self { .init(rawValue: 1 << 13) }
+        public static var maskHeaderValues: Self { .init(rawValue: 1 << 13) }
         static var reserved2: Self { .init(rawValue: 1 << 14) }
         static var reserved3: Self { .init(rawValue: 1 << 15) }
 
@@ -79,17 +79,20 @@ public enum Zip {
 
     /// File header extra field
     public struct ExtraField {
-        let header: ExtraFieldHeader
-        let data: ArraySlice<UInt8>
+        public let header: ExtraFieldHeader
+        public let data: ArraySlice<UInt8>
     }
 
     /// File header extra field header
-    struct ExtraFieldHeader: RawRepresentable, Equatable {
-        let rawValue: UInt16
+    public struct ExtraFieldHeader: RawRepresentable, Equatable {
+        public let rawValue: UInt16
+        public init(rawValue: UInt16) {
+            self.rawValue = rawValue
+        }
         /// Zip64 extra field (stores 64 bit file sizes and offset)
-        static var zip64: Self { .init(rawValue: 1) }
+        public static var zip64: Self { .init(rawValue: 1) }
         /// Extended timestamp extra field (stores created and updated dates as seconds from 1970)
-        static var extendedTimestamp: Self { .init(rawValue: 0x5455) }
+        public static var extendedTimestamp: Self { .init(rawValue: 0x5455) }
     }
 
     struct Zip64ExtendedInformationExtraField {
