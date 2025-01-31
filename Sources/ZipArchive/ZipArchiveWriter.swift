@@ -159,11 +159,6 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
     }
 
     func addFolder(_ filePath: FilePath) throws {
-        #if os(Windows)
-        let separator = "\\"
-        #else
-        let separator = "/"
-        #endif
         guard !filePath.isEmpty else { return }
         let existingFileHeader =
             self.directory.first(where: { $0.filename == filePath })
