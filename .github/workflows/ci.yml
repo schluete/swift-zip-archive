@@ -37,7 +37,7 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        image: ["swift:6.0"]
+        image: ["swift:6.0", "swiftlang/swift:nightly-6.1-jammy"]
 
     container:
       image: ${{ matrix.image }}

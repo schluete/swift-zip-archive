@@ -71,6 +71,17 @@ struct ZipArchiveReaderTests {
     }
 
     @Test
+    func loadLinuxZipArchive() throws {
+        let filePath = Bundle.module.fixedUpPath(forResource: "linux", ofType: "zip")!
+        try ZipArchiveReader.withFile(filePath) { zipArchiveReader in
+            let zipArchiveDirectory = try zipArchiveReader.readDirectory()
+            let packageSwiftRecord = try #require(zipArchiveDirectory.first { $0.filename == "Sources/ZipArchive/ZipMemoryStorage.swift" })
+            let file = try zipArchiveReader.readFile(packageSwiftRecord)
+            #expect(String(decoding: file[...29], as: UTF8.self) == "/// Storage in a memory buffer")
+        }
+    }
+
+    @Test
     func loadEncryptedZipArchive() throws {
         let filePath = Bundle.module.fixedUpPath(forResource: "encrypted", ofType: "zip")!
         try ZipArchiveReader.withFile(filePath) { zipArchiveReader in
@@ -78,6 +89,18 @@ struct ZipArchiveReaderTests {
             let packageSwiftRecord = try #require(zipArchiveDirectory.first { $0.filename == "Sources/ZipArchive/ZipArchiveReader.swift" })
             let file = try zipArchiveReader.readFile(packageSwiftRecord, password: "testing123")
             #expect(String(decoding: file[...14], as: UTF8.self) == "import CZipZlib")
+        }
+    }
+
+    @Test
+    func loadZipArchiveWithUTF8EncodedFilenames() throws {
+        let filePath = Bundle.module.fixedUpPath(forResource: "encoding", ofType: "zip")!
+        try ZipArchiveReader.withFile(filePath) { zipArchiveReader in
+            let zipArchiveDirectory = try zipArchiveReader.readDirectory()
+            // zip files created on mac don't set encoding flag for utf8 encoded filenames
+
+            _ = try #require(zipArchiveDirectory.first { $0.filename == "encoding/tést.txt" })
+            _ = try #require(zipArchiveDirectory.first { $0.filename == "encoding/smiley😀.txt" })
         }
     }
 
