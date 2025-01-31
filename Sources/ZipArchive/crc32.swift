@@ -1,4 +1,5 @@
-public typealias CRC32 = UInt32
+@usableFromInline
+typealias CRC32 = UInt32
 
 @usableFromInline
 let crc32Table: [CRC32] =
