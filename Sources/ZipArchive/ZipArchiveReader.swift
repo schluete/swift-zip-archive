@@ -171,7 +171,7 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
             crc32: crc32,
             compressedSize: compressedSize64,
             uncompressedSize: uncompressedSize64,
-            filename: filename,
+            filename: .init(filename),
             extraFields: extraFields
         )
     }
@@ -253,7 +253,7 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
             crc32: crc32,
             compressedSize: compressedSize64,
             uncompressedSize: uncompressedSize64,
-            filename: filename,
+            filename: .init(filename),
             extraFields: extraFields,
             comment: comment,
             diskStart: diskStart32,
@@ -453,7 +453,7 @@ extension ZipArchiveReader where Storage == ZipFileStorage {
 }
 
 /// Errors received while reading zip archive
-public struct ZipArchiveReaderError: Error {
+public struct ZipArchiveReaderError: Error, Equatable {
     internal enum Value {
         case invalidFileHeader
         case invalidDirectory

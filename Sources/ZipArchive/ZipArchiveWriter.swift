@@ -104,12 +104,10 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
     public func writeFile(filename: String, contents: [UInt8], password: String? = nil) throws {
         let filePath = FilePath(filename)
         let existingFileHeader =
-            self.directory.first(where: { $0.filename == filePath.string })
-            ?? self.newDirectoryEntries.first(where: { $0.filename == filePath.string })
-        if let existingFileHeader {
-            guard existingFileHeader.uncompressedSize == 0 else {
-                throw ZipArchiveWriterError.fileAlreadyExists
-            }
+            self.directory.first(where: { $0.filename == filePath })
+            ?? self.newDirectoryEntries.first(where: { $0.filename == filePath })
+        guard existingFileHeader == nil else {
+            throw ZipArchiveWriterError.fileAlreadyExists
         }
         try addFolder(filePath.removingRoot().removingLastComponent())
         // Calculate CRC32
@@ -134,7 +132,7 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
             crc32: crc,
             compressedSize: fileSize,
             uncompressedSize: numericCast(contents.count),
-            filename: filename,
+            filename: .init(filename),
             extraFields: [],
             comment: "",
             diskStart: 0,
@@ -161,17 +159,12 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
     }
 
     func addFolder(_ filePath: FilePath) throws {
-        #if os(Windows)
-        let separator = "\\"
-        #else
-        let separator = "/"
-        #endif
-        let folderName = "\(filePath.string)\(separator)"
         guard !filePath.isEmpty else { return }
         let existingFileHeader =
-            self.directory.first(where: { $0.filename == folderName })
-            ?? self.newDirectoryEntries.first(where: { $0.filename == folderName })
+            self.directory.first(where: { $0.filename == filePath })
+            ?? self.newDirectoryEntries.first(where: { $0.filename == filePath })
         if let existingFileHeader {
+            // if uncompressedSize is zero then we can assume this is a folder (Can we?)
             guard existingFileHeader.uncompressedSize == 0 else {
                 throw ZipArchiveWriterError.fileAlreadyExists
             }
@@ -185,7 +178,7 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
             crc32: 0,
             compressedSize: 0,
             uncompressedSize: 0,
-            filename: folderName,
+            filename: filePath,
             extraFields: [],
             comment: "",
             diskStart: 0,
@@ -235,7 +228,7 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
             fileHeader.crc32,
             UInt32(fileHeader.compressedSize),
             UInt32(fileHeader.uncompressedSize),
-            UInt16(fileHeader.filename.utf8.count),
+            UInt16(fileHeader.filename.string.utf8.count),
             UInt16(extraFieldsBuffer.count),
             UInt16(fileHeader.comment.utf8.count),
             UInt16(fileHeader.diskStart),
@@ -243,7 +236,7 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
             fileHeader.externalAttributes,
             UInt32(fileHeader.offsetOfLocalHeader)
         )
-        try self.storage.writeString(fileHeader.filename)
+        try self.storage.writeString(fileHeader.filename.string)
         try self.storage.write(bytes: extraFieldsBuffer)
         try self.storage.writeString(fileHeader.comment)
     }
@@ -263,10 +256,10 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
             fileHeader.crc32,
             UInt32(fileHeader.compressedSize),
             UInt32(fileHeader.uncompressedSize),
-            UInt16(fileHeader.filename.utf8.count),
+            UInt16(fileHeader.filename.string.utf8.count),
             UInt16(extraFields.count)
         )
-        try self.storage.writeString(fileHeader.filename)
+        try self.storage.writeString(fileHeader.filename.string)
         try self.storage.write(bytes: extraFields)
     }
 
@@ -479,7 +472,7 @@ extension ZipArchiveWriter {
 }
 
 /// Errors thrown when writing zip archives
-public struct ZipArchiveWriterError: Error {
+public struct ZipArchiveWriterError: Error, Equatable {
     internal enum Value {
         case fileAlreadyExists
     }
