@@ -14,7 +14,6 @@ final class ZipFileStorageTests {
         (10, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
     ])
     func testRead(values: (read: Int, result: [UInt8])) throws {
-        print("Current directory \(Bundle.main.resourceURL?.path ?? "None")")
         let fileDescriptor = try FileDescriptor.open(
             .init(filePath),
             .readOnly
@@ -123,7 +122,13 @@ final class ZipFileStorageTests {
 extension Bundle {
     func fixedUpPath(forResource name: String?, ofType ext: String?) -> String? {
         #if os(Windows)
-        Bundle.module.path(forResource: name, ofType: ext).map { String($0.dropFirst()) }
+        Bundle.module.path(forResource: name, ofType: ext).map {
+            if $0.first == "/" {
+                String($0.dropFirst())
+            } else {
+                $0
+            }
+        }
         #else
         Bundle.module.path(forResource: name, ofType: ext)
         #endif
