@@ -84,10 +84,20 @@ public enum Zip {
     }
 
     /// File header extra field header
-    public struct ExtraFieldHeader: RawRepresentable, Equatable {
+    public struct ExtraFieldHeader: RawRepresentable, Equatable, CustomStringConvertible {
         public let rawValue: UInt16
         public init(rawValue: UInt16) {
             self.rawValue = rawValue
+        }
+        public var description: String {
+            switch self {
+            case .zip64:
+                ".zip64"
+            case .extendedTimestamp:
+                ".extendedTimestamp"
+            default:
+                "0x\(("000" + String(rawValue, radix: 16)).suffix(4))"
+            }
         }
         /// Zip64 extra field (stores 64 bit file sizes and offset)
         public static var zip64: Self { .init(rawValue: 1) }
