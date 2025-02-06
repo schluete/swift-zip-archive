@@ -9,7 +9,7 @@ import Foundation
 /// Zip file types
 /// Details on these can be found in the PKZIP AppNotes https://support.pkware.com/pkzip/application-note-archives
 public enum Zip {
-    static let versionMadeBy: UInt16 = 0x31e  // (Unix)
+    static let versionMadeBy = VersionMadeBy(system: .unix, version: 0x1e)
 
     /// zip file header options
     public struct FileFlags: OptionSet {
@@ -58,9 +58,73 @@ public enum Zip {
         case ppmd = 98
     }
 
+    /// zip file header external attributes for unix files
+    public struct UnixAttributes: OptionSet {
+        public let rawValue: UInt16
+
+        public init(rawValue: UInt16) {
+            self.rawValue = rawValue
+        }
+
+        public static func permissions(_ permissions: FilePermissions) -> Self { .init(rawValue: numericCast(permissions.rawValue)) }
+        public static var isDirectory: Self { .init(rawValue: 0o40000) }
+        public static var isRegularFile: Self { .init(rawValue: 0o100000) }
+
+        public var filePermissions: FilePermissions { .init(rawValue: numericCast(rawValue) & 0o7777) }
+    }
+
+    /// zip file header external attributes for msdos files
+    public struct MSDOSAttributes: OptionSet {
+        public let rawValue: UInt32
+
+        public init(rawValue: UInt32) {
+            self.rawValue = rawValue
+        }
+
+        public static func permissions(_ permissions: FilePermissions) -> Self { .init(rawValue: numericCast(permissions.rawValue)) }
+        public static var isDirectory: Self { .init(rawValue: 0x10) }
+    }
+
+    /// zip file header external attributes
+    public struct ExternalAttributes: OptionSet {
+        public let rawValue: UInt32
+
+        public init(rawValue: UInt32) {
+            self.rawValue = rawValue
+        }
+
+        public static func msdos(_ attributes: MSDOSAttributes) -> Self { .init(rawValue: attributes.rawValue) }
+        public static func unix(_ attributes: UnixAttributes) -> Self { .init(rawValue: numericCast(attributes.rawValue) << 16) }
+
+        var unixAttributes: UnixAttributes { .init(rawValue: numericCast(rawValue >> 16)) }
+        var msdosAttributes: MSDOSAttributes { .init(rawValue: rawValue & 0xffff) }
+    }
+
+    public struct VersionMadeBy: RawRepresentable, Sendable, Equatable {
+        public let rawValue: UInt16
+        public init(rawValue: UInt16) {
+            self.rawValue = rawValue
+        }
+
+        public struct System: RawRepresentable {
+            public let rawValue: UInt8
+            public init(rawValue: UInt8) {
+                self.rawValue = rawValue
+            }
+            static var msdos: Self { .init(rawValue: 0) }
+            static var unix: Self { .init(rawValue: 0x3) }
+        }
+        public init(system: System, version: UInt8) {
+            self.init(rawValue: numericCast(system.rawValue) << 8 | numericCast(version))
+        }
+
+        var version: UInt8 { numericCast(rawValue & 0xff) }
+        var system: System { .init(rawValue: numericCast(rawValue >> 8)) }
+    }
+
     /// File header for a file in a zip archive.
     public struct FileHeader {
-        //let versionMadeBy: UInt16
+        let versionMadeBy: VersionMadeBy
         var versionNeeded: UInt16
         public var flags: FileFlags
         public var compressionMethod: FileCompressionMethod
@@ -73,8 +137,14 @@ public enum Zip {
         public var comment: String
         var diskStart: UInt32
         var internalAttribute: UInt16
-        public var externalAttributes: UInt32
+        public var externalAttributes: ExternalAttributes
         var offsetOfLocalHeader: Int64
+
+        var isDirectory: Bool {
+            versionMadeBy.system == .unix
+                ? self.externalAttributes.unixAttributes.contains(.isDirectory)
+                : self.externalAttributes.msdosAttributes.contains(.isDirectory)
+        }
     }
 
     /// File header extra field
@@ -113,7 +183,6 @@ public enum Zip {
     }
 
     struct LocalFileHeader {
-        //let versionMadeBy: UInt16
         var versionNeeded: UInt16
         var flags: FileFlags
         var compressionMethod: FileCompressionMethod

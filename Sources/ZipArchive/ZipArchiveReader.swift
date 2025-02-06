@@ -178,7 +178,7 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
 
     func readFileHeader(from storage: some ZipReadableStorage) throws -> Zip.FileHeader {
         let (
-            signature, _, versionNeeded, flags, compression, modTime, modDate, crc32, compressedSize, uncompressedSize, fileNameLength,
+            signature, versionMadeBy, versionNeeded, flags, compression, modTime, modDate, crc32, compressedSize, uncompressedSize, fileNameLength,
             extraFieldsLength, commentLength, diskStart, internalAttribute, externalAttribute, offsetOfLocalHeader
         ) =
             try storage.readIntegers(
@@ -246,6 +246,7 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
             throw ZipArchiveReaderError.unsupportedCompressionMethod
         }
         return .init(
+            versionMadeBy: .init(rawValue: versionMadeBy),
             versionNeeded: versionNeeded,
             flags: .init(rawValue: flags),
             compressionMethod: compressionMethod,
@@ -258,7 +259,7 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
             comment: comment,
             diskStart: diskStart32,
             internalAttribute: internalAttribute,
-            externalAttributes: externalAttribute,
+            externalAttributes: .init(rawValue: externalAttribute),
             offsetOfLocalHeader: offsetOfLocalHeader64
         )
     }
