@@ -102,7 +102,18 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
     ///   - contents: Contents of file
     ///   - password: Password to encrypt file with
     public func writeFile(filename: String, contents: [UInt8], password: String? = nil) throws {
-        let filePath = FilePath(filename)
+        try writeFile(filePath: .init(filename), contents: contents, password: password)
+    }
+
+    ///  Write file to zip archive
+    ///
+    /// If any of the files containing folders don't exist in the zip directory they will
+    /// also be added.
+    /// - Parameters:
+    ///   - filePath: File path of file
+    ///   - contents: Contents of file
+    ///   - password: Password to encrypt file with
+    public func writeFile(filePath: FilePath, contents: [UInt8], password: String? = nil) throws {
         let existingFileHeader =
             self.directory.first(where: { $0.filename == filePath })
             ?? self.newDirectoryEntries.first(where: { $0.filename == filePath })

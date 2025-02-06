@@ -68,15 +68,6 @@ struct ZipArchiveWriterTests {
     }
 
     @Test
-    func testFolderEqual() {
-        let a = FilePath("Test")
-        let b = FilePath("Test/")
-        print(a)
-        print(b.string)
-        #expect(a == b)
-    }
-
-    @Test
     func testAddingDuplicateFilesErrors() throws {
         let writer = ZipArchiveWriter()
         try writer.writeFile(filename: "Tests/Hello.txt", contents: .init("Hello, world!".utf8))
