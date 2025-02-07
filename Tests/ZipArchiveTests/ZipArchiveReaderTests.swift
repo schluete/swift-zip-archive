@@ -1,4 +1,5 @@
 import Foundation
+import SystemPackage
 import Testing
 
 @testable import ZipArchive
@@ -75,6 +76,9 @@ struct ZipArchiveReaderTests {
         let filePath = Bundle.module.fixedUpPath(forResource: "linux", ofType: "zip")!
         try ZipArchiveReader.withFile(filePath) { zipArchiveReader in
             let zipArchiveDirectory = try zipArchiveReader.readDirectory()
+            let folder = try #require(zipArchiveDirectory.first)
+            #expect(folder.isDirectory)
+            #expect(folder.filename == "Sources")
             let packageSwiftRecord = try #require(zipArchiveDirectory.first { $0.filename == "Sources/ZipArchive/ZipMemoryStorage.swift" })
             let file = try zipArchiveReader.readFile(packageSwiftRecord)
             #expect(String(decoding: file[...29], as: UTF8.self) == "/// Storage in a memory buffer")
@@ -113,5 +117,24 @@ struct ZipArchiveReaderTests {
             #expect(ZipArchiveDirectory[0].filename == "-")
             #expect(String(decoding: file, as: UTF8.self) == "Hello, world!\n")
         }
+    }
+
+    @Test
+    func extractToFolder() throws {
+        let writer = ZipArchiveWriter()
+        try writer.writeFile(filename: "Hello/Hello.txt", contents: .init("Hello,".utf8))
+        try writer.writeFile(filename: "World/World.txt", contents: .init("world!".utf8))
+        let buffer = try writer.finalizeBuffer()
+        let reader = try ZipArchiveReader(buffer: buffer)
+        try DirectoryDescriptor.mkdir("Temp", options: .ignoreExistingDirectoryError, permissions: [.ownerReadWriteExecute])
+        defer {
+            try? DirectoryDescriptor.recursiveDelete("Temp")
+        }
+        try reader.extract(to: "Temp")
+        var files: [FilePath] = []
+        try DirectoryDescriptor.recursiveForFilesInDirectory("Temp") { filePath in
+            files.append(filePath)
+        }
+        #expect(Set(files) == Set(["Temp/Hello/Hello.txt", "Temp/Hello", "Temp/World/World.txt", "Temp/World"]))
     }
 }
