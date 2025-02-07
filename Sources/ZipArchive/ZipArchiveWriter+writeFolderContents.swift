@@ -7,9 +7,9 @@ extension ZipArchiveWriter {
             self.rawValue = rawValue
         }
 
-        static var recursive: Self { .init(rawValue: 1 << 0) }
-        static var includeContainingFolder: Self { .init(rawValue: 1 << 1) }
-        static var includeHiddenFiles: Self { .init(rawValue: 1 << 2) }
+        public static var recursive: Self { .init(rawValue: 1 << 0) }
+        public static var includeContainingFolder: Self { .init(rawValue: 1 << 1) }
+        public static var includeHiddenFiles: Self { .init(rawValue: 1 << 2) }
     }
 
     ///  Write the contents of a folder into a zip file

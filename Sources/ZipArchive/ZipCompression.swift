@@ -10,12 +10,12 @@ public protocol ZipCompression {
 
 extension ZipCompression where Self == NoZipCompression {
     /// No compression
-    static var noCompression: Self { .init() }
+    public static var noCompression: Self { .init() }
 }
 
 extension ZipCompression where Self == ZlibDeflateCompression {
     /// Zlib deflate compression
-    static var deflate: Self { .init() }
+    public static var deflate: Self { .init() }
 }
 
 typealias ZipCompressionMethodsMap = [Zip.FileCompressionMethod: any ZipCompression]

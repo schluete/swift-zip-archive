@@ -66,10 +66,14 @@ public enum Zip {
             self.rawValue = rawValue
         }
 
+        /// File permissions
         public static func permissions(_ permissions: FilePermissions) -> Self { .init(rawValue: numericCast(permissions.rawValue)) }
+        /// Is a directory
         public static var isDirectory: Self { .init(rawValue: 0o40000) }
+        /// Is a regular file
         public static var isRegularFile: Self { .init(rawValue: 0o100000) }
 
+        /// File permissions
         public var filePermissions: FilePermissions { .init(rawValue: numericCast(rawValue) & 0o7777) }
     }
 
@@ -81,7 +85,7 @@ public enum Zip {
             self.rawValue = rawValue
         }
 
-        public static func permissions(_ permissions: FilePermissions) -> Self { .init(rawValue: numericCast(permissions.rawValue)) }
+        /// Is a directory
         public static var isDirectory: Self { .init(rawValue: 0x10) }
     }
 
@@ -93,11 +97,15 @@ public enum Zip {
             self.rawValue = rawValue
         }
 
+        /// MSDOS attributes
         public static func msdos(_ attributes: MSDOSAttributes) -> Self { .init(rawValue: attributes.rawValue) }
+        /// Unix attributes
         public static func unix(_ attributes: UnixAttributes) -> Self { .init(rawValue: numericCast(attributes.rawValue) << 16) }
 
-        var unixAttributes: UnixAttributes { .init(rawValue: numericCast(rawValue >> 16)) }
-        var msdosAttributes: MSDOSAttributes { .init(rawValue: rawValue & 0xffff) }
+        /// Unix attributes (permissions and file type)
+        public var unixAttributes: UnixAttributes { .init(rawValue: numericCast(rawValue >> 16)) }
+        /// MSDOS attributes (Is it a directory)
+        public var msdosAttributes: MSDOSAttributes { .init(rawValue: rawValue & 0xffff) }
     }
 
     public struct VersionMadeBy: RawRepresentable, Sendable, Equatable {
@@ -118,8 +126,8 @@ public enum Zip {
             self.init(rawValue: numericCast(system.rawValue) << 8 | numericCast(version))
         }
 
-        var version: UInt8 { numericCast(rawValue & 0xff) }
-        var system: System { .init(rawValue: numericCast(rawValue >> 8)) }
+        public var version: UInt8 { numericCast(rawValue & 0xff) }
+        public var system: System { .init(rawValue: numericCast(rawValue >> 8)) }
     }
 
     /// File header for a file in a zip archive.
