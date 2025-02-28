@@ -48,31 +48,46 @@ public class ZlibDeflateCompression: ZipCompression {
         guard rt == Z_OK else { throw ZipArchiveReaderError.compressionError }
 
         var from = from
-        return try .init(unsafeUninitializedCapacity: uncompressedSize) { toBuffer, count in
-            try from.withUnsafeMutableBytes { fromBuffer in
-                stream.avail_in = UInt32(fromBuffer.count)
-                stream.next_in = CZipZlib_voidPtr_to_BytefPtr(fromBuffer.baseAddress!)
-                stream.avail_out = UInt32(toBuffer.count)
-                stream.next_out = CZipZlib_voidPtr_to_BytefPtr(toBuffer.baseAddress!)
+        let buffer: [UInt8]
+        do {
+            buffer = try .init(unsafeUninitializedCapacity: uncompressedSize) { toBuffer, count in
+                try from.withUnsafeMutableBytes { fromBuffer in
+                    stream.avail_in = UInt32(fromBuffer.count)
+                    stream.next_in = CZipZlib_voidPtr_to_BytefPtr(fromBuffer.baseAddress!)
+                    stream.avail_out = UInt32(toBuffer.count)
+                    stream.next_out = CZipZlib_voidPtr_to_BytefPtr(toBuffer.baseAddress!)
 
-                let rt = CZipZlib.inflate(&stream, Z_FINISH)
-                switch rt {
-                case Z_OK:
-                    break
-                case Z_BUF_ERROR:
-                    throw ZipArchiveReaderError.compressionError
-                case Z_DATA_ERROR:
-                    throw ZipArchiveReaderError.compressionError
-                case Z_MEM_ERROR:
-                    throw ZipArchiveReaderError.compressionError
-                case Z_STREAM_END:
-                    break
-                default:
-                    throw ZipArchiveReaderError.compressionError
+                    let rt = CZipZlib.inflate(&stream, Z_FINISH)
+                    switch rt {
+                    case Z_OK:
+                        break
+                    case Z_BUF_ERROR:
+                        throw ZipArchiveReaderError.compressionError
+                    case Z_DATA_ERROR:
+                        throw ZipArchiveReaderError.compressionError
+                    case Z_MEM_ERROR:
+                        throw ZipArchiveReaderError.compressionError
+                    case Z_STREAM_END:
+                        break
+                    default:
+                        throw ZipArchiveReaderError.compressionError
+                    }
                 }
+                count = uncompressedSize
             }
-            count = uncompressedSize
+        } catch {
+            let rt = inflateEnd(&stream)
+            assert(rt == Z_OK)
+            throw error
         }
+        let deflateRT = inflateEnd(&stream)
+        switch deflateRT {
+        case Z_STREAM_END:
+            throw ZipArchiveReaderError.compressionError
+        default:
+            break
+        }
+        return buffer
     }
 
     public func deflate(from: [UInt8]) throws -> [UInt8] {
@@ -99,31 +114,47 @@ public class ZlibDeflateCompression: ZipCompression {
         #else
         let largestCompressedSize = deflateBound(&stream, UInt(from.count)) + 6
         #endif
+        let buffer: [UInt8]
+        do {
+            buffer = try .init(unsafeUninitializedCapacity: Int(largestCompressedSize)) { toBuffer, count in
+                try from.withUnsafeMutableBytes { fromBuffer in
+                    stream.avail_in = UInt32(fromBuffer.count)
+                    stream.next_in = CZipZlib_voidPtr_to_BytefPtr(fromBuffer.baseAddress!)
+                    stream.avail_out = UInt32(toBuffer.count)
+                    stream.next_out = CZipZlib_voidPtr_to_BytefPtr(toBuffer.baseAddress!)
 
-        return try .init(unsafeUninitializedCapacity: Int(largestCompressedSize)) { toBuffer, count in
-            try from.withUnsafeMutableBytes { fromBuffer in
-                stream.avail_in = UInt32(fromBuffer.count)
-                stream.next_in = CZipZlib_voidPtr_to_BytefPtr(fromBuffer.baseAddress!)
-                stream.avail_out = UInt32(toBuffer.count)
-                stream.next_out = CZipZlib_voidPtr_to_BytefPtr(toBuffer.baseAddress!)
-
-                let rt = CZipZlib.deflate(&stream, Z_FINISH)
-                switch rt {
-                case Z_OK:
-                    throw ZipArchiveReaderError.compressionError
-                case Z_BUF_ERROR:
-                    throw ZipArchiveReaderError.compressionError
-                case Z_DATA_ERROR:
-                    throw ZipArchiveReaderError.compressionError
-                case Z_MEM_ERROR:
-                    throw ZipArchiveReaderError.compressionError
-                case Z_STREAM_END:
-                    break
-                default:
-                    throw ZipArchiveReaderError.compressionError
+                    let rt = CZipZlib.deflate(&stream, Z_FINISH)
+                    switch rt {
+                    case Z_OK:
+                        throw ZipArchiveReaderError.compressionError
+                    case Z_BUF_ERROR:
+                        throw ZipArchiveReaderError.compressionError
+                    case Z_DATA_ERROR:
+                        throw ZipArchiveReaderError.compressionError
+                    case Z_MEM_ERROR:
+                        throw ZipArchiveReaderError.compressionError
+                    case Z_STREAM_END:
+                        break
+                    default:
+                        throw ZipArchiveReaderError.compressionError
+                    }
+                    count = stream.next_out - CZipZlib_voidPtr_to_BytefPtr(toBuffer.baseAddress)
                 }
-                count = stream.next_out - CZipZlib_voidPtr_to_BytefPtr(toBuffer.baseAddress)
             }
+        } catch {
+            let rt = deflateEnd(&stream)
+            assert(rt == Z_OK)
+            throw error
         }
+        let deflateRT = deflateEnd(&stream)
+        switch deflateRT {
+        case Z_DATA_ERROR:
+            throw ZipArchiveReaderError.compressionError
+        case Z_STREAM_END:
+            throw ZipArchiveReaderError.compressionError
+        default:
+            break
+        }
+        return buffer
     }
 }
