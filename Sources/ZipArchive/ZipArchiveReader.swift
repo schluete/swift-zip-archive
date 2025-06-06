@@ -85,6 +85,20 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
     ///   - password: Password used to decrypt file
     /// - Returns: Buffer containing file
     public func readFile(_ file: Zip.FileHeader, password: String? = nil) throws -> [UInt8] {
+        if let password {
+            return try readFile(file, passwordBytes: [UInt8](password.utf8))
+        } else {
+            return try readFile(file, passwordBytes: nil)
+        }
+    }
+
+    /// Read file from zip file
+    ///
+    /// - Parameters:
+    ///   - file: File header, from zip directory
+    ///   - passwordBytes: Password used to decrypt file as individual bytes
+    /// - Returns: Buffer containing file
+    public func readFile(_ file: Zip.FileHeader, passwordBytes: [UInt8]? = nil) throws -> [UInt8] {
         precondition(self.parsingDirectory == false, "Cannot read file while parsing the directory")
         try self.storage.seek(numericCast(file.offsetOfLocalHeader))
         let localFileHeader = try readLocalFileHeader()
@@ -106,8 +120,8 @@ public final class ZipArchiveReader<Storage: ZipReadableStorage> {
         var fileBytes = try self.storage.readBytes(length: numericCast(fileSize))
 
         // if we have a password and encryption keys
-        if let password, var encryptionKeys {
-            var cryptKey = CryptKey(password: password)
+        if let passwordBytes, var encryptionKeys {
+            var cryptKey = CryptKey(passwordBytes: passwordBytes)
             cryptKey.decryptBytes(&encryptionKeys)
             cryptKey.decryptBytes(&fileBytes)
         } else if encryptionKeys != nil {

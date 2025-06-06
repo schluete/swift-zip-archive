@@ -195,7 +195,7 @@ public final class ZipArchiveWriter<Storage: ZipWriteableStorage> {
         var fileSize = Int64(compressedContents.count)
         if let password {
             flags.insert(.encrypted)
-            cryptKey = CryptKey(password: password)
+          cryptKey = CryptKey(passwordBytes: [UInt8](password.utf8))
             fileSize += 12
         }
         let fileHeader = Zip.FileHeader(

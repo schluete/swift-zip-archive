@@ -1,10 +1,14 @@
 struct CryptKey {
     var key: (UInt32, UInt32, UInt32)
 
-    init(password: String) {
-        key = (305_419_896, 591_751_049, 878_082_192)
-        updateKey(values: [UInt8](password.utf8))
-    }
+//    init(password: String) {
+//        key = (305_419_896, 591_751_049, 878_082_192)
+//        updateKey(values: [UInt8](password.utf8))
+//    }
+  init(passwordBytes: [UInt8]) {
+      key = (305_419_896, 591_751_049, 878_082_192)
+      updateKey(values: passwordBytes)
+  }
 
     mutating func updateKey(values: some Collection<UInt8>) {
         for value in values {
